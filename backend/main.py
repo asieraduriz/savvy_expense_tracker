@@ -1,15 +1,9 @@
-from typing import Union
-
 from fastapi import FastAPI
+from backend.models.base import Base
+from backend.routes import auth
+from backend.database import engine
 
 app = FastAPI()
+app.include_router(auth.router, prefix='/auth')
 
-
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
-
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
+Base.metadata.create_all(bind=engine)
