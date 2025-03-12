@@ -11,7 +11,7 @@ from backend.models.mixins import TimestampMixin
 Base = declarative_base()
 
 # Define an Enum for roles
-class UserRole(enum.Enum):
+class UserRole(str, enum.Enum):
     ADMIN = "admin"
     MEMBER = "member"
     VIEWER = "viewer"
@@ -20,6 +20,7 @@ class InvitationStatus(str, enum.Enum):
     PENDING = "PENDING"
     ACCEPTED = "ACCEPTED"
     REJECTED = "REJECTED"
+    CANCELLED = "CANCELLED"
 
 
 class Invitation(Base, TimestampMixin):
@@ -30,7 +31,7 @@ class Invitation(Base, TimestampMixin):
     invitee_id: Mapped[str] = mapped_column(ForeignKey("user.id"), nullable=False)
     group_id: Mapped[str] = mapped_column(ForeignKey("group.id"), nullable=False)
     status: Mapped[InvitationStatus] = mapped_column(Enum(InvitationStatus), nullable=False, default=InvitationStatus.PENDING)
-    role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False)  # Track the role in the invitation
+    role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False, default=UserRole.MEMBER)
     
     inviter: Mapped[User] = relationship("User", foreign_keys=[inviter_id])
     invitee: Mapped[User] = relationship("User", foreign_keys=[invitee_id])
@@ -45,11 +46,10 @@ class InvitationStatusHistory(Base):
 
     id: Mapped[str] = mapped_column(primary_key=True, default=lambda: str(uuid.uuid4()))
     invitation_id: Mapped[str] = mapped_column(ForeignKey("invitation.id"), nullable=False)
+    invitation: Mapped[Invitation] = relationship("Invitation", back_populates="status_history")
+
     status: Mapped[InvitationStatus] = mapped_column(Enum(InvitationStatus), nullable=False)
     changed_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
-
-    # Relationship to Invitation and the User who made the change
-    invitation: Mapped[Invitation] = relationship("Invitation", back_populates="status_history")
     changed_by_user_id: Mapped[str] = mapped_column(ForeignKey("user.id"), nullable=False)
     changed_by_user: Mapped[User] = relationship("User")
 
@@ -95,7 +95,7 @@ class Group(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(nullable=False, index=True)
     color: Mapped[str] = mapped_column(nullable=True)
     icon: Mapped[str] = mapped_column(nullable=True)
-    
+
     created_by_id: Mapped[str] = mapped_column(ForeignKey("user.id"), nullable=False)
     created_by: Mapped[User] = relationship("User")
 
@@ -160,4 +160,3 @@ class ExpenseCategory(Base, TimestampMixin):
     icon: Mapped[str] = mapped_column(nullable=True)
 
     expenses: Mapped[List[Expense]] = relationship(back_populates='category')
-

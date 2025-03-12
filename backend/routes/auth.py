@@ -133,4 +133,3 @@ def login_user(loginUser: LoginUser, db: Session=Depends(get_db)):
         raise HTTPException(status_code=400, detail="Invalid password")
     
     return { 'access_token': generate_jwt(user.id)}
-    return None

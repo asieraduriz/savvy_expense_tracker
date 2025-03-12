@@ -1,4 +1,5 @@
 from typing import Dict, Any, Optional
+from fastapi import HTTPException
 import jwt
 import datetime
 
@@ -14,11 +15,11 @@ def generate_jwt(user_id: str) -> str:
         'exp': now + datetime.timedelta(minutes=30),
         'iat': now
     }
-    
+
     token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
     return token
 
-def decode_jwt(token: str) -> Optional[JWTPayload]:
+def _decode_jwt(token: str) -> Optional[JWTPayload]:
     """Decodes a JWT and returns the payload or None if invalid."""
 
     if not token.startswith("JWT "):
@@ -38,3 +39,10 @@ def decode_jwt(token: str) -> Optional[JWTPayload]:
     except Exception as e:
         print("Unknown error", e)
         return None
+    
+def get_user_from_auth(token:str) -> Optional[str]:
+    payload = _decode_jwt(token)
+    if not payload:
+        return HTTPException({"message": "Invalid token"}, status_code=401)
+
+    return payload.sub
