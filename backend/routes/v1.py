@@ -41,9 +41,9 @@ def update_group(group_id: str, group: UpdateGroup, db: Session = Depends(get_db
             return HTTPException({"message": "Invalid token"}, status_code=401)
         
         user_id = payload.sub
-        user = db.query(User).filter(User.id == user_id).one()
-        existing_group = db.query(Group).filter(Group.id == group_id).one()
-
+        user = db.query(User).filter(User.id == user_id).first()
+        existing_group = db.query(Group).filter(Group.id == group_id).first()
+        print("Existing group", existing_group.__dict__)
         if user.id != existing_group.created_by.id:
             raise HTTPException(status_code=403, detail="You are not the creator of this group")
 
@@ -51,6 +51,7 @@ def update_group(group_id: str, group: UpdateGroup, db: Session = Depends(get_db
         for key, value in update_dict.items():
             setattr(existing_group, key, value)
 
+        print('Updated group', existing_group.__dict__)
         db.commit()
     except Exception as e:
         print('Error updating group', e)
