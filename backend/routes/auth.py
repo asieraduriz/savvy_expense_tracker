@@ -14,7 +14,7 @@ from backend.security.jwt import generate_jwt
 
 router = APIRouter()
 
-@router.put('/signup', status_code=201)
+@router.post('/signup', status_code=201)
 def signup_user(user: SignupUser, db: Session=Depends(get_db)):
     new_user = User(name=user.name, email=user.email, password=bcrypt.hashpw(user.password.encode(), bcrypt.gensalt()))
 

@@ -11,7 +11,7 @@ from backend.security.jwt import decode_jwt
 
 router = APIRouter()
 
-@router.put('/group', status_code=201)
+@router.post('/group', status_code=201)
 def create_group(group: CreateGroup, db: Session = Depends(get_db), authorization: Annotated[str | None, Header()] = None):
     try:
         payload = decode_jwt(authorization)
@@ -33,7 +33,7 @@ def create_group(group: CreateGroup, db: Session = Depends(get_db), authorizatio
         db.rollback()
         raise HTTPException(status_code=500, detail="Couldn't create group")
 
-@router.post('/group/{group_id}', status_code=200)
+@router.patch('/group/{group_id}', status_code=200)
 def update_group(group_id: str, group: UpdateGroup, db: Session = Depends(get_db), authorization: Annotated[str | None, Header()] = None):
     try:
         payload = decode_jwt(authorization)
@@ -47,7 +47,9 @@ def update_group(group_id: str, group: UpdateGroup, db: Session = Depends(get_db
         if user.id != existing_group.created_by.id:
             raise HTTPException(status_code=403, detail="You are not the creator of this group")
 
-        existing_group.name = group.name
+        update_dict = group.model_dump(exclude_unset=True)
+        for key, value in update_dict.items():
+            setattr(existing_group, key, value)
 
         db.commit()
     except Exception as e:
