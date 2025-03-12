@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from backend.models.base import Group, User, UserGroupRole, UserRole
 from backend.schemas.create_group import CreateGroup
+from backend.schemas.update_group import UpdateGroup
 from backend.security.jwt import decode_jwt
 
 router = APIRouter()
@@ -25,7 +26,31 @@ def create_group(group: CreateGroup, db: Session = Depends(get_db), authorizatio
         db.add(user_group_role)
 
         db.commit()
+
+        return {"group_id": new_group.id}
     except Exception as e:
         print('Error creating group', e)
         db.rollback()
         raise HTTPException(status_code=500, detail="Couldn't create group")
+
+@router.post('/group/{group_id}', status_code=200)
+def update_group(group_id: str, group: UpdateGroup, db: Session = Depends(get_db), authorization: Annotated[str | None, Header()] = None):
+    try:
+        payload = decode_jwt(authorization)
+        if not payload:
+            return HTTPException({"message": "Invalid token"}, status_code=401)
+        
+        user_id = payload.sub
+        user = db.query(User).filter(User.id == user_id).one()
+        existing_group = db.query(Group).filter(Group.id == group_id).one()
+
+        if user.id != existing_group.created_by.id:
+            raise HTTPException(status_code=403, detail="You are not the creator of this group")
+
+        existing_group.name = group.name
+
+        db.commit()
+    except Exception as e:
+        print('Error updating group', e)
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Couldn't update group")

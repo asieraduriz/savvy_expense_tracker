@@ -132,4 +132,5 @@ def login_user(loginUser: LoginUser, db: Session=Depends(get_db)):
     if passwords_match == False:
         raise HTTPException(status_code=400, detail="Invalid password")
     
+    return { 'access_token': generate_jwt(user.id)}
     return None

@@ -9,7 +9,12 @@ SECRET_KEY = "636b56b04687f1789f464d4c648e255ee4a9b22d6ecbdd599fb0ca2c701e4ccc"
 def generate_jwt(user_id: str) -> str:
     """Generates a JWT with user ID."""
     now = datetime.datetime.now(datetime.UTC)
-    payload: JWTPayload = JWTPayload(sub=str(user_id), exp=now + datetime.timedelta(minutes=30),iat=now)
+    payload: JWTPayload = {
+        'sub': str(user_id),
+        'exp': now + datetime.timedelta(minutes=30),
+        'iat': now
+    }
+    
     token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
     return token
 
