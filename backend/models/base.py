@@ -72,10 +72,9 @@ class User(Base, TimestampMixin):
     __tablename__ = 'user'
 
     id: Mapped[str] = mapped_column(primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
-    username: Mapped[str] = mapped_column(unique=True, nullable=False)
-    name: Mapped[str] = mapped_column(nullable=False)
     email: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
     password: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    name: Mapped[str] = mapped_column(nullable=False)
 
     # Users are linked to groups through UserGroupRole
     user_group_roles: Mapped[List[UserGroupRole]] = relationship(back_populates="user")
@@ -83,12 +82,14 @@ class User(Base, TimestampMixin):
     sent_invitations: Mapped[List[Invitation]] = relationship("Invitation", foreign_keys=[Invitation.inviter_id], back_populates="inviter")
     received_invitations: Mapped[List[Invitation]] = relationship("Invitation", foreign_keys=[Invitation.invitee_id], back_populates="invitee")
 
-
 class Group(Base, TimestampMixin):
     __tablename__ = 'group'
 
     id: Mapped[str] = mapped_column(primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
     name: Mapped[str] = mapped_column(nullable=False, index=True)
+
+    created_by_id: Mapped[str] = mapped_column(ForeignKey("user.id"), nullable=False)
+    created_by: Mapped[User] = relationship("User")
 
     # Groups are linked to users through UserGroupRole
     user_group_roles: Mapped[List[UserGroupRole]] = relationship(back_populates="group")

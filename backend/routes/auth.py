@@ -1,25 +1,35 @@
 
 import bcrypt
-from fastapi import APIRouter, Depends
-from backend.schemas.user_create import UserCreate
+from fastapi import APIRouter, Depends, HTTPException
+from backend.schemas.login_user import LoginUser
+from backend.schemas.signup_user import SignupUser
 from backend.database import get_db
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from backend.models.base import User
 
-import uuid
+
+from backend.security.jwt import generate_jwt
 
 router = APIRouter()
 
-@router.post('/signup')
-def signup_user(user: UserCreate, db: Session=Depends(get_db)):
-    db.query(User).filter(User.email == user.email).first()
+@router.put('/signup', status_code=201)
+def signup_user(user: SignupUser, db: Session=Depends(get_db)):
+    new_user = User(name=user.name, email=user.email, password=bcrypt.hashpw(user.password.encode(), bcrypt.gensalt()))
 
-    new_user = User(name=user.name, email=user.email, password=bcrypt.hashpw(user.password.encode(), bcrypt.gensalt()), username=user.username)
+    try:
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
 
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+        jwt = generate_jwt(user_id=new_user.id)
+        
+        return {"access_token": jwt}
+    except IntegrityError as e:
+        db.rollback()
+        print("Integrity error", e)
+        raise HTTPException(status_code=400, detail="Couldn't signup user")
     # # Step 1: Create a User
 
     # category_name = 'Supermarket'
@@ -110,13 +120,16 @@ def signup_user(user: UserCreate, db: Session=Depends(get_db)):
     #     print(f"Status: {history.status}, Changed By: {history.changed_by_user.username}, At: {history.changed_at}")
 
 
-@router.get('/main')
-def get_main(db: Session=Depends(get_db)):
-    user =db.query(User).filter(User.username == 'aaduriz').first()
-    user_string = f"User(id={user.id}, username={user.username}, name={user.name}, email={user.email}, groups=["
+@router.post('/login', status_code=200)
+def login_user(loginUser: LoginUser, db: Session=Depends(get_db)):
+    user = db.query(User).filter(User.email == loginUser.email).first()
 
-    # Stringify Groups
-    group_strings = [f"Group(id={group.id})" for group in user.groups]
-    user_string += ", ".join(group_strings) + "])"
+    if user is None:
+        raise HTTPException(status_code=400, detail="Email not found")
+    
+    passwords_match = bcrypt.checkpw(loginUser.password.encode(), user.password)
 
-    return user_string
+    if passwords_match == False:
+        raise HTTPException(status_code=400, detail="Invalid password")
+    
+    return None
