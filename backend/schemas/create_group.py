@@ -1,6 +1,7 @@
+from typing import Optional
 from pydantic import BaseModel
 
 class CreateGroup(BaseModel):
     name: str
-    color: str
-    icon: str
+    color: Optional[str] = None
+    icon: Optional[str] = None
