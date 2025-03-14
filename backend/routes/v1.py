@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, Header
 from backend.database import get_db
 from sqlalchemy.orm import Session
 
-from backend.models.base import Group, Invitation, InvitationStatus, InvitationStatusHistory, User, UserGroupRole, UserRole
+from backend.models.base import Group, Invitation, InvitationStatus, InvitationStatusHistory, OneTimeExpense, SubscriptionExpense, User, UserGroupRole, UserRole
+from backend.schemas.create_expense import CreateExpense
 from backend.schemas.create_group import CreateGroup
 from backend.schemas.create_invitation import CreateInvitation
 from backend.schemas.get_group import GroupResponse
@@ -127,3 +128,39 @@ def update_invitation(invitation_id: str, invitation: UpdateInvitation, db: Sess
         print('Error updating invitation', e)
         db.rollback()
         raise HTTPException(status_code=500, detail="Couldn't update invitation")
+    
+
+@router.post('/group/{group_id}/expense', status_code=201)
+def create_expense(group_id:str, expense: CreateExpense, db:Session=Depends(get_db), authorization: Annotated[str | None, Header()] = None):
+    try:
+        user_id = get_user_from_auth(authorization)
+        user = db.query(User).filter(User.id == user_id).one()
+        group = db.query(Group).filter(Group.id == group_id).one()
+
+        if expense.expense_type == 'one_time_expense':
+            one_time_expense = OneTimeExpense(
+                group=group,
+                creator=user,
+                **expense.model_dump(exclude_unset=True)
+            )
+
+            db.add(one_time_expense)
+            db.commit()
+
+            return one_time_expense
+        
+        # Maybe request from user if they want to store previous expenses
+        # And I need to create subscription entries
+        subscription_expense = SubscriptionExpense(
+            group=group,
+            creator=user,
+            **expense.model_dump(exclude_unset=True)
+        )
+        db.add(subscription_expense)
+        db.commit()
+
+        return subscription_expense
+    except Exception as e:
+        print('Error creating expense', e)
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Couldn't create expense")

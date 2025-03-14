@@ -22,6 +22,11 @@ class InvitationStatus(str, enum.Enum):
     REJECTED = "REJECTED"
     CANCELLED = "CANCELLED"
 
+class Frequency(str, enum.Enum):
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+    YEARLY = "yearly"
 
 class Invitation(Base, TimestampMixin):
     __tablename__ = 'invitation'
@@ -120,10 +125,13 @@ class Expense(Base, TimestampMixin):
     creator_id: Mapped[str] = mapped_column(ForeignKey("user.id"))
     creator: Mapped[User] = relationship()
 
-    category_id: Mapped[str] = mapped_column(ForeignKey("expense_category.id"))
-    category: Mapped[ExpenseCategory] = relationship(back_populates='expenses')
-
     expense_type: Mapped[str]
+
+    name: Mapped[str] = mapped_column(nullable=False)
+    amount: Mapped[float] = mapped_column(nullable=False)
+    category_name: Mapped[str] = mapped_column(nullable=True)
+    category_color: Mapped[str] = mapped_column(nullable=True)
+    category_icon: Mapped[str] = mapped_column(nullable=True)
 
     __mapper_args__ = {
         "polymorphic_identity": "expense",
@@ -135,7 +143,7 @@ class OneTimeExpense(Expense):
     __tablename__ = 'one_time_expense'
 
     id: Mapped[str] = mapped_column(ForeignKey("expense.id"), primary_key=True)
-
+    expense_date: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
     __mapper_args__ = {
         'polymorphic_identity': 'one_time_expense',
     }
@@ -146,17 +154,11 @@ class SubscriptionExpense(Expense):
 
     id: Mapped[str] = mapped_column(ForeignKey("expense.id"), primary_key=True)
 
-    cadence_days: Mapped[int] = mapped_column(nullable=False, default=30)
+    start_date: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
+    end_date: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=True)
+    every: Mapped[int] = mapped_column(nullable=False, default=1)
+    frequency: Mapped[Frequency] = mapped_column(Enum(Frequency), nullable=False, default=Frequency.MONTHLY)
+
     __mapper_args__ = {
         'polymorphic_identity': 'subscription_expense',
     }
-
-
-class ExpenseCategory(Base, TimestampMixin):
-    __tablename__ = 'expense_category'
-
-    id: Mapped[str] = mapped_column(primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
-    name: Mapped[str] = mapped_column(nullable=False, index=True)
-    icon: Mapped[str] = mapped_column(nullable=True)
-
-    expenses: Mapped[List[Expense]] = relationship(back_populates='category')
