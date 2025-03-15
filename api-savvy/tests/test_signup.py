@@ -21,7 +21,7 @@ def test_signup_user(client: TestClient):
 
 @pytest.fixture
 def pre_populated_session(session: Session):
-    existing_user = User(name="Asier", email="some@email.com", password=hash_password("1234"))
+    existing_user = User(id="1", name="Asier", email="some@email.com", password=hash_password("1234"))
     session.add(existing_user)
     session.commit()
     return session

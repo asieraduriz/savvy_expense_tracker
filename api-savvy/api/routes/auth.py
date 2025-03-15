@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
+from uuid import uuid4
 
 from api.database import get_session
 from api.models import User
@@ -21,31 +22,43 @@ class UserSignup(BaseModel):
     password: str
 
 class UserSignupResponse(BaseModel):
-    id: int
+    id: str
     name: str
     email: str
     access_token: str
 
-@router.post("/signup/", status_code=201, response_model=UserSignupResponse)
+@router.post("/signup/", status_code=201)
 def signup(*, session: Session = Depends(get_session), user: UserSignup):
+    query = select(User).where(User.email == user.email)
+    results = session.exec(query)
+    existing_user = results.first()
+
+    if existing_user is not None:
+        raise HTTPException(status_code=409, detail={'duplicates': ['email']})
+        
     try:
-        db_user = User(name=user.name, email=user.email, password=hash_password(user.password))
+        db_user = User(
+            id=str(uuid4()),
+            name=user.name,
+            email=user.email, 
+            password=hash_password(user.password)
+        )
+        print("Db user before", db_user)
+
         session.add(db_user)
         session.commit()
         session.refresh(db_user)
+        print("Db user", db_user)
         return UserSignupResponse(**db_user.model_dump(exclude={'password'}), access_token=create_access_token(db_user.id))
-    except IntegrityError as e:
-        if 'user.email' in e._message():
-            raise HTTPException(status_code=409, detail={'duplicates': ['email']})
-        raise HTTPException(status_code=500, detail=f'Error creating user {e}')
-    
+    except Exception as e:
+        print(e)
 
 class UserLogin(BaseModel):
     email: str
     password: str
 
 class UserLoginResponse(BaseModel):
-    id: int
+    id: str
     name: str
     email: str
     access_token: str

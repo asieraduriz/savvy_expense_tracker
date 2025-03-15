@@ -22,7 +22,7 @@ def verify_password(password: str, hashed_password: bytes) -> bool:
     return bcrypt.checkpw(password.encode('utf-8'), hashed_password)
 
 
-def create_access_token(user_id: Optional[int]) -> str:
+def create_access_token(user_id: Optional[str]) -> str:
     now_utc = datetime.now(timezone.utc)
     expire = now_utc + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
