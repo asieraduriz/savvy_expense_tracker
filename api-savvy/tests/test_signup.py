@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 import pytest
 from sqlmodel import Session
 from api.models import User
-from api.security import hash_password
+from api.security import decode_access_token, hash_password
 
 
 def test_signup_user(client: TestClient):
@@ -18,6 +18,7 @@ def test_signup_user(client: TestClient):
     assert data["email"] == "some@email.com"
     assert 'access_token' in data
     assert 'password' not in data
+    assert decode_access_token(data['access_token'])['sub'] == data['id']
 
 @pytest.fixture
 def pre_populated_session(session: Session):
