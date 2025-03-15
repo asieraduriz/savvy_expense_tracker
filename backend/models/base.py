@@ -3,8 +3,7 @@ import uuid, enum, datetime
 from typing import List
 
 from sqlalchemy import LargeBinary, DateTime, ForeignKey, Enum, func
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, declarative_base
 
 from backend.models.mixins import TimestampMixin
 
