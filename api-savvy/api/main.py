@@ -1,6 +1,8 @@
+from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException, Query
-from sqlmodel import Field, Relationship, Session, SQLModel, create_engine, select
-
+from sqlmodel import Field, Relationship, Session, SQLModel, select
+from api.database import create_db_and_tables, get_session
+from api.routes import auth
 
 class TeamBase(SQLModel):
     name: str = Field(index=True)
@@ -64,29 +66,17 @@ class TeamPublicWithHeroes(TeamPublic):
     heroes: list[HeroPublic] = []
 
 
-sqlite_file_name = "database.db"
-sqlite_url = f"sqlite:///{sqlite_file_name}"
-
-connect_args = {"check_same_thread": False}
-engine = create_engine(sqlite_url, echo=True, connect_args=connect_args)
 
 
-def create_db_and_tables():
-    SQLModel.metadata.create_all(engine)
-
-
-def get_session():
-    with Session(engine) as session:
-        yield session
-
-
-app = FastAPI()
-
-
-@app.on_event("startup")
-def on_startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup logic
     create_db_and_tables()
+    yield
+    # Shutdown logic (if any)
 
+app = FastAPI(lifespan=lifespan)
+app.include_router(auth.router, prefix="/auth")
 
 @app.post("/heroes/", response_model=HeroPublic)
 def create_hero(*, session: Session = Depends(get_session), hero: HeroCreate):
