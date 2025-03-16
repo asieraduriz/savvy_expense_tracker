@@ -7,10 +7,12 @@ from sqlalchemy import Column, Enum as SAEnum, ForeignKey, Table
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from api.database import Base
 
+
 class GroupRoleEnum(str, Enum):
     ADMIN = "admin"
     MEMBER = "member"
     VIEWER = "viewer"
+
 
 user_group_role_table = Table(
     "user_group_role",
@@ -20,6 +22,7 @@ user_group_role_table = Table(
     Column("role", SAEnum(GroupRoleEnum)),
 )
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -27,8 +30,10 @@ class User(Base):
     name: Mapped[str]
     email: Mapped[str] = mapped_column(unique=True, nullable=False, index=True)
     password: Mapped[bytes] = mapped_column(nullable=False)
-    
-    group_links: Mapped[List[Group]] = relationship(secondary=user_group_role_table, back_populates="user_links")
+
+    group_links: Mapped[List[Group]] = relationship(
+        secondary=user_group_role_table, back_populates="user_links"
+    )
 
 
 class Group(Base):
@@ -39,6 +44,6 @@ class Group(Base):
     color: Mapped[Optional[str]]
     icon: Mapped[Optional[str]]
 
-    user_links: Mapped[List[User]] = relationship(secondary=user_group_role_table, back_populates="group_links")
-
-
+    user_links: Mapped[List[User]] = relationship(
+        secondary=user_group_role_table, back_populates="group_links"
+    )

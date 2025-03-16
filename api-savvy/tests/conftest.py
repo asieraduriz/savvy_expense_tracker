@@ -6,10 +6,13 @@ from sqlalchemy.orm import Session
 from api.database import Base, get_db
 from api.main import app
 
+
 @pytest.fixture(name="test_db")
 def session_fixture():
     engine = create_engine(
-        "sqlite:///memory.db", connect_args={"check_same_thread": False}, poolclass=StaticPool
+        "sqlite:///memory.db",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
 
     Base.metadata.create_all(engine)
@@ -18,6 +21,7 @@ def session_fixture():
             yield session
     finally:
         Base.metadata.drop_all(engine)
+
 
 @pytest.fixture(name="client")
 def client_fixture(test_db: Session):
