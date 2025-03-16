@@ -33,6 +33,7 @@ def test_login_existing_user(client: TestClient, pre_populated_session: Session)
     assert data["id"] is not None
     assert data["name"] == "Asier"
     assert data["email"] == "some@email.com"
+    assert 'password' not in data
     assert 'access_token' in data
 
 def test_login_existing_user_incorrect_password(client: TestClient, pre_populated_session: Session):

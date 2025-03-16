@@ -10,6 +10,7 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown logic (if any)
 
+# Base.metadata.drop_all(bind=engine)
 Base.metadata.create_all(bind=engine)
 
 
