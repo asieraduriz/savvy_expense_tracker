@@ -4,15 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from pydantic import BaseModel
 from sqlmodel import Session, select
-from sqlalchemy.exc import IntegrityError
 from uuid import uuid4
 
 from api.database import get_session
 from api.models import User
 from api.security import create_access_token, hash_password, verify_password
-
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 router = APIRouter()
 
