@@ -1,16 +1,16 @@
 
 
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, Header
 
 from pydantic import BaseModel
-from sqlmodel import Session, select
-from sqlalchemy.exc import IntegrityError
 from uuid import uuid4
 
-from api.database import get_session
-from api.models import Group, GroupRoleEnum, User, UserGroupLink
-from api.security import create_access_token, get_user_from_auth, hash_password, verify_password
+from sqlalchemy.orm import Session
+
+from api.database import get_db
+from api.models import Group, GroupRoleEnum
+from api.security import get_user_from_auth
 
 router = APIRouter()
 
@@ -21,9 +21,9 @@ class GroupCreate(BaseModel):
 
 
 @router.post("/groups/", status_code=201)
-def create_group(*, session: Session = Depends(get_session), group: GroupCreate, authorization: Annotated[str | None, Header()] = None):
+def create_group(*, db: Session = Depends(get_db), group: GroupCreate, authorization: Annotated[str | None, Header()] = None):
     print("Authorizaton", authorization)
-    user = get_user_from_auth(authorization, session)
+    user = get_user_from_auth(authorization, db)
 
     try:
         new_group = Group(
@@ -31,21 +31,13 @@ def create_group(*, session: Session = Depends(get_session), group: GroupCreate,
             name=group.name,
             color=group.color,
             icon=group.icon,
-            owner=user
         )
 
-        new_link = UserGroupLink(
-            user_id=user.id,
-            group_id=new_group.id,
-            role=GroupRoleEnum.ADMIN
-        )
+        db.add(new_group)
 
-        session.add(new_group)
-        session.add(new_link)
-
-        session.commit()
+        db.commit()
 
         return new_group
 
     except Exception as e:
-        session.rollback()
+        db.rollback()

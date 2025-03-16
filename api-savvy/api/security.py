@@ -3,7 +3,7 @@ import bcrypt
 import jwt
 from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, status
-from sqlmodel import Session, select
+from sqlalchemy.orm import Session
 
 from api.models import User
 
@@ -45,7 +45,7 @@ def decode_access_token(token: str) -> dict:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-def get_user_from_auth(authorization:str, session: Session):
+def get_user_from_auth(authorization:str, db: Session):
     if authorization is None or not authorization.startswith("JWT "):
         raise HTTPException(status_code= status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
     
@@ -53,36 +53,8 @@ def get_user_from_auth(authorization:str, session: Session):
     payload = decode_access_token(token)
     user_id = payload.get("sub")
 
-    query = select(User).where(User.id == user_id)
-    results = session.exec(query)
-    user = results.first()
+    user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail="Not found")
     
     return user
-
-# def create_refresh_token(user_id: str) -> str:
-#     refresh_token = str(uuid.uuid4())
-#     now_utc = datetime.now(timezone.utc)
-#     expire = now_utc + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-#     payload = {
-#         "sub": user_id,
-#         "exp": expire,
-#         "type": "refresh"
-#     }
-#     encoded_jwt = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
-#     return encoded_jwt
-
-
-# def decode_refresh_token(refresh_token: str) -> dict:
-#     try:
-#         payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
-#         if payload.get("type") != "refresh":
-#             raise ValueError("Invalid token type")
-#         return payload
-#     except (jwt.PyJWTError, ValueError):
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail="Invalid refresh token",
-#             headers={"WWW-Authenticate": "Bearer"},
-#         )

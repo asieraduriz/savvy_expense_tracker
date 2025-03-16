@@ -1,40 +1,44 @@
+from __future__ import annotations
+
 from typing import List, Optional
-import sqlalchemy
-from sqlmodel import Enum, Field, Relationship, SQLModel
-from sqlalchemy import Column, Enum as SAEnum
+from enum import Enum
+from uuid import uuid4
+from sqlalchemy import Column, Enum as SAEnum, ForeignKey, Table
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from api.database import Base
 
 class GroupRoleEnum(str, Enum):
     ADMIN = "admin"
     MEMBER = "member"
     VIEWER = "viewer"
+
+user_group_role_table = Table(
+    "user_group_role",
+    Base.metadata,
+    Column("user_id", ForeignKey("users.id"), primary_key=True),
+    Column("group_id", ForeignKey("groups.id"), primary_key=True),
+    Column("role", SAEnum(GroupRoleEnum)),
+)
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(primary_key=True, default=str(uuid4()))
+    name: Mapped[str]
+    email: Mapped[str] = mapped_column(unique=True, nullable=False, index=True)
+    password: Mapped[bytes] = mapped_column(nullable=False)
     
-class UserGroupLink(SQLModel, table=True):
-    user_id: Optional[str] = Field(default=None, foreign_key="user.id", primary_key=True)
-    user: "User" = Relationship(back_populates="group_links")
-
-    group_id: Optional[str] = Field(default=None, foreign_key="group.id", primary_key=True)
-    group: "Group" = Relationship()
-
-    role: GroupRoleEnum = Field(sa_column=Column(SAEnum(GroupRoleEnum)))  # Mapping Enum to SQL
+    group_links: Mapped[List[Group]] = relationship(secondary=user_group_role_table, back_populates="user_links")
 
 
-class User(SQLModel, table=True):
-    id: Optional[str] = Field(index=True, primary_key=True)
-    name: str
-    email: str = Field(index=True, unique=True)
-    password: bytes
-    group_links: list[UserGroupLink]= Relationship(back_populates="user")
+class Group(Base):
+    __tablename__ = "groups"
 
+    id: Mapped[str] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(nullable=False)
+    color: Mapped[Optional[str]]
+    icon: Mapped[Optional[str]]
 
-class Group(SQLModel, table=True):
-    id: Optional[str] = Field(default=None, primary_key=True)
-    name: str
-    color: Optional[str] = Field(nullable=True)
-    icon: Optional[str] = Field(nullable=True)
-
-    owner_id: str = Field(foreign_key="user.id")
-
-    user_links: list[User] = Relationship(back_populates="group")
-
+    user_links: Mapped[List[User]] = relationship(secondary=user_group_role_table, back_populates="group_links")
 
 

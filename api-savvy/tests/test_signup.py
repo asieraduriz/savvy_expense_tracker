@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 import pytest
-from sqlmodel import Session
+from sqlalchemy.orm import Session
 from api.models import User
 from api.security import decode_access_token, hash_password
 
@@ -21,11 +21,11 @@ def test_signup_user(client: TestClient):
     assert decode_access_token(data['access_token'])['sub'] == data['id']
 
 @pytest.fixture
-def pre_populated_session(session: Session):
+def pre_populated_session(test_db: Session):
     existing_user = User(id="1", name="Asier", email="some@email.com", password=hash_password("1234"))
-    session.add(existing_user)
-    session.commit()
-    return session
+    test_db.add(existing_user)
+    test_db.commit()
+    return test_db
 
 def test_signup_user_email_already_exists(client: TestClient, pre_populated_session: Session):
     response =client.post(

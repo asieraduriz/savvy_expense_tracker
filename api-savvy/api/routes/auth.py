@@ -3,10 +3,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from pydantic import BaseModel
-from sqlmodel import Session, select
+from sqlalchemy.orm import Session
 from uuid import uuid4
 
-from api.database import get_session
+from api.database import get_db
 from api.models import User
 from api.security import create_access_token, hash_password, verify_password
 
@@ -24,10 +24,8 @@ class UserSignupResponse(BaseModel):
     access_token: str
 
 @router.post("/signup/", status_code=201)
-def signup(*, session: Session = Depends(get_session), user: UserSignup):
-    query = select(User).where(User.email == user.email)
-    results = session.exec(query)
-    existing_user = results.first()
+def signup(*, db: Session = Depends(get_db), user: UserSignup):
+    existing_user = db.query(User).filter(User.email == user.email).first()
 
     if existing_user is not None:
         raise HTTPException(status_code=409, detail={'duplicates': ['email']})
@@ -41,11 +39,16 @@ def signup(*, session: Session = Depends(get_session), user: UserSignup):
         )
         print("Db user before", db_user)
 
-        session.add(db_user)
-        session.commit()
-        session.refresh(db_user)
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
         print("Db user", db_user)
-        return UserSignupResponse(**db_user.model_dump(exclude={'password'}), access_token=create_access_token(db_user.id))
+        return UserSignupResponse(
+            id=db_user.id,
+            name=db_user.name,
+            email=db_user.email,
+            access_token=create_access_token(db_user.id)
+        )
     except Exception as e:
         print(e)
 
@@ -61,11 +64,14 @@ class UserLoginResponse(BaseModel):
 
 
 @router.post("/login/", response_model=UserLoginResponse)
-def login(*, session: Session = Depends(get_session), user: UserLogin):
-    query = select(User).where(User.email == user.email)
-    results = session.exec(query)
-    db_user = results.first()
+def login(*, db: Session = Depends(get_db), user: UserLogin):
+    db_user = db.query(User).filter(User.email == user.email).first()
 
     if not db_user or not verify_password(user.password, db_user.password):
         raise HTTPException(status_code=401, detail='Incorrect email or password')
-    return UserLoginResponse(**db_user.model_dump(exclude={'password'}), access_token=create_access_token(db_user.id))
+    return UserLoginResponse(
+        id=db_user.id,
+        name=db_user.name,
+        email=db_user.email,
+        access_token=create_access_token(db_user.id)
+    )

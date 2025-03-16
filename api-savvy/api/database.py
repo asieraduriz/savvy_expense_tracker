@@ -1,13 +1,17 @@
-from sqlmodel import SQLModel, Session, create_engine
+from sqlalchemy import create_engine
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 DATABASE_URL = 'postgresql://admin:admin@localhost:5432/savvy'
 
-engine = create_engine(DATABASE_URL, echo=False)
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-def get_session():
-    with Session(engine) as session:
-        yield session
+class Base(DeclarativeBase):
+    pass
 
-def create_db_and_tables():
-    SQLModel.metadata.drop_all(engine)
-    SQLModel.metadata.create_all(engine)
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

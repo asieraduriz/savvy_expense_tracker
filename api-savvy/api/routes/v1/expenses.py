@@ -1,16 +1,8 @@
 
 
-from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter
 
 from pydantic import BaseModel
-from sqlmodel import Session, select
-from sqlalchemy.exc import IntegrityError
-from uuid import uuid4
-
-from api.database import get_session
-from api.models import User
-from api.security import create_access_token, get_user_from_auth, hash_password, verify_password
 
 router = APIRouter()
 
