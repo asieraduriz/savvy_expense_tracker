@@ -2,7 +2,13 @@ from fastapi import status
 from fastapi.testclient import TestClient
 import pytest
 from sqlalchemy.orm import Session
-from api.models import Group, GroupRoleEnum, User, user_group_role_table
+from api.models import (
+    Group,
+    GroupInvitationStatusEnum,
+    GroupRoleEnum,
+    User,
+    user_group_role_table,
+)
 from api.security import create_access_token
 
 
@@ -89,7 +95,7 @@ def seed_member_role_group(test_db: Session):
 
 def test_user_cannot_invite_themselves(client: TestClient, seed_admin_role_group):
     headers = {"Authorization": f"JWT {create_access_token('1')}"}
-    print("Headers", headers)
+
     response = client.post(
         f"/v1/groups/3/invite/",
         json={"invitee_id": "1"},
@@ -183,3 +189,4 @@ def test_user_invites_existing_user(client: TestClient, seed_admin_role_group, r
     assert data["id"] is not None
     assert data["group_id"] == "3"
     assert data["role"] == role
+    assert data["status"] == GroupInvitationStatusEnum.PENDING

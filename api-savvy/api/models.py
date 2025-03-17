@@ -63,6 +63,13 @@ class Group(Base):
     invitations: Mapped[List[GroupInvitation]] = relationship(back_populates="group")
 
 
+class GroupInvitationStatusEnum(str, Enum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    WITHDRAWN = "withdrawn"
+
+
 class GroupInvitation(Base):
     __tablename__ = "group_invitations"
 
@@ -83,4 +90,8 @@ class GroupInvitation(Base):
 
     role: Mapped[GroupRoleEnum] = mapped_column(
         nullable=False, default=GroupRoleEnum.MEMBER
+    )
+
+    status: Mapped[GroupInvitationStatusEnum] = mapped_column(
+        nullable=False, default=GroupInvitationStatusEnum.PENDING
     )
