@@ -2,24 +2,28 @@
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import StaticPool, create_engine
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 from api.database import Base, get_db
 from api.main import app
+
+engine = create_engine(
+    "sqlite:///memory.db",
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
+
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 @pytest.fixture(name="test_db")
 def session_fixture():
-    engine = create_engine(
-        "sqlite:///memory.db",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-
     Base.metadata.create_all(engine)
+    session = TestingSessionLocal()
     try:
-        with Session(engine) as session:
-            yield session
+        yield session
     finally:
+        session.rollback()
+        session.close()
         Base.metadata.drop_all(engine)
 
 

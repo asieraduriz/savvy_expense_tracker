@@ -19,7 +19,7 @@ user_group_role_table = Table(
     Base.metadata,
     Column("user_id", ForeignKey("users.id"), primary_key=True),
     Column("group_id", ForeignKey("groups.id"), primary_key=True),
-    Column("role", SAEnum(GroupRoleEnum)),
+    Column("role", SAEnum(GroupRoleEnum), default=GroupRoleEnum.MEMBER),
 )
 
 
@@ -34,16 +34,53 @@ class User(Base):
     group_links: Mapped[List[Group]] = relationship(
         secondary=user_group_role_table, back_populates="user_links"
     )
+    owned_groups: Mapped[List[Group]] = relationship(back_populates="owner")
+
+    emitted_invitations: Mapped[List[GroupInvitation]] = relationship(
+        foreign_keys="[GroupInvitation.emitter_id]", back_populates="emitter"
+    )
+    received_invitations: Mapped[List[GroupInvitation]] = relationship(
+        foreign_keys="[GroupInvitation.invitee_id]", back_populates="invitee"
+    )
 
 
 class Group(Base):
     __tablename__ = "groups"
 
-    id: Mapped[str] = mapped_column(primary_key=True)
+    id: Mapped[str] = mapped_column(primary_key=True, default=str(uuid4()))
+
     name: Mapped[str] = mapped_column(nullable=False)
     color: Mapped[Optional[str]]
     icon: Mapped[Optional[str]]
 
+    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    owner: Mapped[User] = relationship(back_populates="owned_groups")
+
     user_links: Mapped[List[User]] = relationship(
         secondary=user_group_role_table, back_populates="group_links"
+    )
+
+    invitations: Mapped[List[GroupInvitation]] = relationship(back_populates="group")
+
+
+class GroupInvitation(Base):
+    __tablename__ = "group_invitations"
+
+    id: Mapped[str] = mapped_column(primary_key=True, default=str(uuid4()))
+
+    group_id: Mapped[str] = mapped_column(ForeignKey("groups.id"))
+    group: Mapped[Group] = relationship(back_populates="invitations")
+
+    emitter_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    emitter: Mapped[User] = relationship(
+        foreign_keys=[emitter_id], back_populates="emitted_invitations"
+    )
+
+    invitee_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    invitee: Mapped[User] = relationship(
+        foreign_keys=[invitee_id], back_populates="received_invitations"
+    )
+
+    role: Mapped[GroupRoleEnum] = mapped_column(
+        nullable=False, default=GroupRoleEnum.MEMBER
     )

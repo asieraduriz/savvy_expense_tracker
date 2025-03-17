@@ -31,3 +31,7 @@ def test_user_requests_group_creation(
 
     assert response.status_code == 201
     assert data["id"] is not None
+    assert data["name"] == "Group 1"
+    assert data["color"] == "red"
+    assert data["icon"] == "shopping-cart"
+    assert data["owner_id"] == "1"

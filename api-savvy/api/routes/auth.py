@@ -38,12 +38,10 @@ def signup(*, db: Session = Depends(get_db), user: UserSignup):
             email=user.email,
             password=hash_password(user.password),
         )
-        print("Db user before", db_user)
 
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
-        print("Db user", db_user)
         return UserSignupResponse(
             id=db_user.id,
             name=db_user.name,
