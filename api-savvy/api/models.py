@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 from typing import List, Optional
 from enum import Enum
 from uuid import uuid4
@@ -43,6 +44,8 @@ class User(Base):
         foreign_keys="[GroupInvitation.invitee_id]", back_populates="invitee"
     )
 
+    created_expenses: Mapped[List[Expense]] = relationship(back_populates="creator")
+
 
 class Group(Base):
     __tablename__ = "groups"
@@ -61,6 +64,8 @@ class Group(Base):
     )
 
     invitations: Mapped[List[GroupInvitation]] = relationship(back_populates="group")
+
+    expenses: Mapped[List[Expense]] = relationship(back_populates="group")
 
 
 class GroupInvitationStatusEnum(str, Enum):
@@ -95,3 +100,20 @@ class GroupInvitation(Base):
     status: Mapped[GroupInvitationStatusEnum] = mapped_column(
         nullable=False, default=GroupInvitationStatusEnum.PENDING
     )
+
+
+class Expense(Base):
+    __tablename__ = "expenses"
+
+    id: Mapped[str] = mapped_column(primary_key=True, default=str(uuid4()))
+
+    name: Mapped[str] = mapped_column(nullable=False)
+    amount: Mapped[float] = mapped_column(nullable=False)
+    category: Mapped[Optional[str]]
+    date: Mapped[datetime.date] = mapped_column(nullable=False)
+
+    creator_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    creator: Mapped[User] = relationship(back_populates="created_expenses")
+
+    group_id: Mapped[str] = mapped_column(ForeignKey("groups.id"))
+    group: Mapped[Group] = relationship(back_populates="expenses")
