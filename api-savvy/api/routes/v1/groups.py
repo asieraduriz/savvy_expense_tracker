@@ -113,7 +113,7 @@ def invite_to_group(
             status_code=status.HTTP_404_NOT_FOUND, detail="Invitee not found"
         )
 
-    if result[2] not in [GroupRoleEnum.ADMIN, GroupRoleEnum.MEMBER]:
+    if result[2] not in [GroupRoleEnum.ADMIN]:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not enough privileges to invite",
