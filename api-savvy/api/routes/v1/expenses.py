@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from api.database import get_db
-from api.models import Expense, GroupRoleEnum, user_group_role_table
+from api.models import Expense, ExpenseTypeEnum, GroupRoleEnum, user_group_role_table
 from api.security import get_user_from_auth
 
 router = APIRouter()
@@ -19,6 +19,7 @@ class ExpenseCreate(BaseModel):
     amount: float
     category: Optional[str] = None
     date: datetime.date
+    expense_type: ExpenseTypeEnum
 
 
 class ExpenseResponse(ExpenseCreate):
@@ -58,6 +59,7 @@ def create_expense(
         date=expense.date,
         creator=user,
         group_id=group_id,
+        expense_type=str(expense.expense_type.value),
     )
 
     db.add(new_expense)
@@ -70,4 +72,5 @@ def create_expense(
         amount=new_expense.amount,
         category=new_expense.category,
         date=new_expense.date,
+        expense_type=new_expense.expense_type,
     )

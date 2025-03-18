@@ -102,6 +102,11 @@ class GroupInvitation(Base):
     )
 
 
+class ExpenseTypeEnum(Enum):
+    ONE_TIME = "one_time"
+    SUBSCRIPTION = "subscription"
+
+
 class Expense(Base):
     __tablename__ = "expenses"
 
@@ -117,3 +122,48 @@ class Expense(Base):
 
     group_id: Mapped[str] = mapped_column(ForeignKey("groups.id"))
     group: Mapped[Group] = relationship(back_populates="expenses")
+
+    expense_type: Mapped[str]
+    __mapper_args__ = {
+        "polymorphic_identity": "one_time",
+        "polymorphic_on": "expense_type",
+    }
+
+
+class SubscriptionFrequency(str, Enum):
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+    YEARLY = "yearly"
+
+
+class SubscriptionExpense(Expense):
+    __tablename__ = "subscription_expenses"
+
+    id: Mapped[str] = mapped_column(ForeignKey("expenses.id"), primary_key=True)
+
+    on_every: Mapped[int] = mapped_column(nullable=False, default=1)
+    frequency: Mapped[SubscriptionFrequency] = mapped_column(
+        nullable=False, default=SubscriptionFrequency.MONTHLY
+    )
+
+    start_date: Mapped[datetime.date] = mapped_column(nullable=False)
+    end_date: Mapped[Optional[datetime.date]] = mapped_column(default=None)
+
+    charges: Mapped[list[SubscriptionCharge]] = relationship(
+        back_populates="subscription"
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "subscription",
+    }
+
+
+class SubscriptionCharge(Base):
+    __tablename__ = "subscription_charges"
+
+    id: Mapped[str] = mapped_column(primary_key=True, index=True)
+    subscription_id: Mapped[str] = mapped_column(ForeignKey("subscription_expenses.id"))
+    subscription: Mapped[SubscriptionExpense] = relationship(back_populates="charges")
+    charged_date: Mapped[datetime.date] = mapped_column(nullable=False)
+    amount: Mapped[float] = mapped_column(nullable=False)
