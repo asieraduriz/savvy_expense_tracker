@@ -130,7 +130,7 @@ class Expense(Base):
     }
 
 
-class SubscriptionFrequency(str, Enum):
+class SubscriptionFrequencyEnum(str, Enum):
     DAILY = "daily"
     WEEKLY = "weekly"
     MONTHLY = "monthly"
@@ -143,8 +143,8 @@ class SubscriptionExpense(Expense):
     id: Mapped[str] = mapped_column(ForeignKey("expenses.id"), primary_key=True)
 
     on_every: Mapped[int] = mapped_column(nullable=False, default=1)
-    frequency: Mapped[SubscriptionFrequency] = mapped_column(
-        nullable=False, default=SubscriptionFrequency.MONTHLY
+    frequency: Mapped[SubscriptionFrequencyEnum] = mapped_column(
+        nullable=False, default=SubscriptionFrequencyEnum.MONTHLY
     )
 
     start_date: Mapped[datetime.date] = mapped_column(nullable=False)
