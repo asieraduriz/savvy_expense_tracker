@@ -8,6 +8,7 @@ from api.models import (
     ExpenseTypeEnum,
     Group,
     GroupRoleEnum,
+    Subscription,
     User,
     user_group_role_table,
     SubscriptionFrequencyEnum,
@@ -49,16 +50,18 @@ def test_user_cannot_create_subscriptions_in_non_existing_group(
     response = client.post(
         "/v1/groups/non-existing-group-id/expenses/",
         json={
-            "name": "Expense 1",
+            "on_every": 1,
+            "frequency": SubscriptionFrequencyEnum.WEEKLY.value,
             "amount": 15,
-            "date": datetime.date.today().isoformat(),
             "expense_type": ExpenseTypeEnum.SUBSCRIPTION.value,
+            "start_date": datetime.date.today().isoformat(),
+            "name": "Kombucha subscription",
         },
         headers=headers,
     )
 
     data = response.json()
-
+    print(data)
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert data["detail"] == "Group not found"
 
@@ -90,7 +93,7 @@ def seed_viewer(test_db: Session):
     return new_user, new_group
 
 
-def test_user_cannot_create_expenses_due_to_insufficient_privileges(
+def test_user_cannot_create_subscriptions_due_to_insufficient_privileges(
     client: TestClient, seed_viewer: tuple[User, Group]
 ):
     viewer_user, viewer_group = seed_viewer
@@ -99,16 +102,18 @@ def test_user_cannot_create_expenses_due_to_insufficient_privileges(
     response = client.post(
         f"/v1/groups/{viewer_group.id}/expenses/",
         json={
-            "name": "Expense 1",
             "amount": 15,
-            "date": datetime.date.today().isoformat(),
             "expense_type": ExpenseTypeEnum.SUBSCRIPTION.value,
+            "start_date": datetime.date.today().isoformat(),
+            "on_every": 1,
+            "frequency": SubscriptionFrequencyEnum.WEEKLY.value,
+            "name": "Kombucha subscription",
         },
         headers=headers,
     )
 
     data = response.json()
-
+    print(data)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert data["detail"] == "Insufficient privileges"
 
@@ -120,12 +125,11 @@ def test_user_creates_subscription(
     headers = {"Authorization": f"JWT {create_access_token(admin_user.id)}"}
     today = datetime.date.today()
     payload = {
-        "name": "Expense 1",
         "amount": 15,
-        "date": today.isoformat(),
         "expense_type": ExpenseTypeEnum.SUBSCRIPTION.value,
         "start_date": today.isoformat(),
         "category": "Kombucha",
+        "name": "Kombucha subscription",
         "on_every": 1,
         "frequency": SubscriptionFrequencyEnum.WEEKLY.value,
     }
@@ -138,23 +142,17 @@ def test_user_creates_subscription(
 
     assert response.status_code == status.HTTP_201_CREATED
     assert data["id"] is not None
-    assert data["name"] == "Expense 1"
     assert data["amount"] == 15
-    assert data["date"] == today.isoformat()
     assert data["expense_type"] == ExpenseTypeEnum.SUBSCRIPTION.value
     assert data["category"] == "Kombucha"
     assert data["on_every"] == 1
     assert data["frequency"] == SubscriptionFrequencyEnum.WEEKLY.value
 
-    # Verify the expense was actually created in the database
-    expense_from_db = test_db.query(Expense).filter_by(id=data["id"]).first()
-    assert expense_from_db is not None
-    assert expense_from_db.name == "Expense 1"
-    assert expense_from_db.amount == 15
-    assert expense_from_db.date == today
-    assert expense_from_db.expense_type == ExpenseTypeEnum.SUBSCRIPTION.value
-    assert expense_from_db.creator_id == admin_user.id
-    assert expense_from_db.group_id == admin_group.id
-    assert expense_from_db.category == "Kombucha"
-    assert expense_from_db.on_every == 1
-    assert expense_from_db.frequency == SubscriptionFrequencyEnum.WEEKLY.value
+    db_subscription = test_db.query(Subscription).filter_by(id=data["id"]).first()
+
+    assert db_subscription is not None
+    assert db_subscription.creator_id == admin_user.id
+    assert db_subscription.group_id == admin_group.id
+    assert db_subscription.category == "Kombucha"
+    assert db_subscription.on_every == 1
+    assert db_subscription.frequency == SubscriptionFrequencyEnum.WEEKLY.value

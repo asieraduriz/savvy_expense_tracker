@@ -46,6 +46,10 @@ class User(Base):
 
     created_expenses: Mapped[List[Expense]] = relationship(back_populates="creator")
 
+    created_subscription_charges: Mapped[List[SubscriptionCharge]] = relationship(
+        back_populates="creator"
+    )
+
 
 class Group(Base):
     __tablename__ = "groups"
@@ -112,10 +116,9 @@ class Expense(Base):
 
     id: Mapped[str] = mapped_column(primary_key=True, default=str(uuid4()))
 
+    category: Mapped[Optional[str]]
     name: Mapped[str] = mapped_column(nullable=False)
     amount: Mapped[float] = mapped_column(nullable=False)
-    category: Mapped[Optional[str]]
-    date: Mapped[datetime.date] = mapped_column(nullable=False)
 
     creator_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
     creator: Mapped[User] = relationship(back_populates="created_expenses")
@@ -125,7 +128,6 @@ class Expense(Base):
 
     expense_type: Mapped[str]
     __mapper_args__ = {
-        "polymorphic_identity": "one_time",
         "polymorphic_on": "expense_type",
     }
 
@@ -137,8 +139,20 @@ class SubscriptionFrequencyEnum(str, Enum):
     YEARLY = "yearly"
 
 
-class SubscriptionExpense(Expense):
-    __tablename__ = "subscription_expenses"
+class OneTimeExpense(Expense):
+    __tablename__ = "one_time_expenses"
+
+    id: Mapped[str] = mapped_column(ForeignKey("expenses.id"), primary_key=True)
+
+    date: Mapped[datetime.date] = mapped_column(nullable=False)
+
+    __mapper_args__ = {
+        "polymorphic_identity": "one_time",
+    }
+
+
+class Subscription(Expense):
+    __tablename__ = "subscriptions"
 
     id: Mapped[str] = mapped_column(ForeignKey("expenses.id"), primary_key=True)
 
@@ -162,8 +176,12 @@ class SubscriptionExpense(Expense):
 class SubscriptionCharge(Base):
     __tablename__ = "subscription_charges"
 
-    id: Mapped[str] = mapped_column(primary_key=True, index=True)
-    subscription_id: Mapped[str] = mapped_column(ForeignKey("subscription_expenses.id"))
-    subscription: Mapped[SubscriptionExpense] = relationship(back_populates="charges")
+    id: Mapped[str] = mapped_column(primary_key=True, default=str(uuid4()))
+
+    subscription_id: Mapped[str] = mapped_column(ForeignKey("subscriptions.id"))
+    subscription: Mapped[Subscription] = relationship(back_populates="charges")
     charged_date: Mapped[datetime.date] = mapped_column(nullable=False)
     amount: Mapped[float] = mapped_column(nullable=False)
+
+    creator_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    creator: Mapped[User] = relationship(back_populates="created_subscription_charges")
