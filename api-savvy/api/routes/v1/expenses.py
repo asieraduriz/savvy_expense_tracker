@@ -1,6 +1,6 @@
 import datetime
-from typing import Annotated, Optional
-from fastapi import APIRouter, Depends, HTTPException, Header, status
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, status
 
 
 from pydantic import BaseModel
@@ -9,16 +9,16 @@ from sqlalchemy.orm import Session
 
 from api.database import get_db
 from api.models import (
-    Expense,
     ExpenseTypeEnum,
     GroupRoleEnum,
     OneTimeExpense,
     Subscription,
     SubscriptionCharge,
     SubscriptionFrequencyEnum,
+    User,
     user_group_role_table,
 )
-from api.security import get_user_from_auth
+from api.middlewares import get_authenticated_user
 
 router = APIRouter()
 
@@ -64,9 +64,8 @@ def create_expense(
     group_id: str,
     expense: OneTimeExpenseCreate | SubscriptionExpenseCreate,
     db: Session = Depends(get_db),
-    authorization: Annotated[str | None, Header()] = None,
+    user: User = Depends(get_authenticated_user),
 ):
-    user = get_user_from_auth(authorization, db)
     stmt = select(user_group_role_table).where(
         user_group_role_table.c.user_id == user.id,
         user_group_role_table.c.group_id == group_id,
@@ -157,9 +156,8 @@ def create_subscription_charge(
     subscription_id: str,
     charge: SubscriptionChargeCreate,
     db: Session = Depends(get_db),
-    authorization: Annotated[str | None, Header()] = None,
+    user: User = Depends(get_authenticated_user),
 ):
-    user = get_user_from_auth(authorization, db)
     stmt = select(user_group_role_table).where(
         user_group_role_table.c.user_id == user.id,
         user_group_role_table.c.group_id == group_id,

@@ -1,5 +1,4 @@
-from typing import Annotated
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends
 
 from pydantic import BaseModel
 from uuid import uuid4
@@ -10,9 +9,11 @@ from api.database import get_db
 from api.models import (
     Group,
     GroupRoleEnum,
+    User,
     user_group_role_table,
 )
-from api.security import get_user_from_auth
+
+from api.middlewares import get_authenticated_user
 
 
 router = APIRouter()
@@ -37,10 +38,8 @@ class GroupResponse(BaseModel):
 def create_group(
     group: GroupCreate,
     db: Session = Depends(get_db),
-    authorization: Annotated[str | None, Header()] = None,
+    user: User = Depends(get_authenticated_user),
 ):
-    user = get_user_from_auth(authorization, db)
-
     try:
         new_group = Group(
             id=str(uuid4()),

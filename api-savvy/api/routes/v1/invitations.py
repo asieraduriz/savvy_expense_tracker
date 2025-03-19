@@ -1,6 +1,6 @@
 import enum
-from typing import Annotated, Optional
-from fastapi import APIRouter, Depends, HTTPException, Header, status
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from pydantic import BaseModel
 
@@ -15,7 +15,7 @@ from api.models import (
     User,
     user_group_role_table,
 )
-from api.security import get_user_from_auth
+from api.middlewares import get_authenticated_user
 
 
 router = APIRouter()
@@ -38,9 +38,8 @@ def invite_to_group(
     group_id: str,
     invitation: InviteCreate,
     db: Session = Depends(get_db),
-    authorization: Annotated[str | None, Header()] = None,
+    user: User = Depends(get_authenticated_user),
 ):
-    user = get_user_from_auth(authorization, db)
     if user.id == invitation.invitee_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
@@ -103,9 +102,8 @@ def rsvp_invitation(
     invitation_id: str,
     invitation_rsvp: InvitationRsvp,
     db: Session = Depends(get_db),
-    authorization: Annotated[str | None, Header()] = None,
+    user: User = Depends(get_authenticated_user),
 ):
-    user = get_user_from_auth(authorization, db)
 
     invitation = (
         db.query(GroupInvitation)
@@ -147,9 +145,8 @@ def rsvp_invitation(
 def withdraw_invitation(
     invitation_id: str,
     db: Session = Depends(get_db),
-    authorization: Annotated[str | None, Header()] = None,
+    user: User = Depends(get_authenticated_user),
 ):
-    user = get_user_from_auth(authorization, db)
 
     invitation = (
         db.query(GroupInvitation)
