@@ -17,14 +17,18 @@ class UserSignup(BaseModel):
     password: str
 
 
-class UserSignupResponse(BaseModel):
-    id: str
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+
+class UserAuthResponse(BaseModel):
     name: str
     email: str
     access_token: str
 
 
-@router.post("/signup/", status_code=201)
+@router.post("/signup/", status_code=201, response_model=UserAuthResponse)
 def signup(*, db: Session = Depends(get_db), user: UserSignup):
     existing_user = db.query(User).filter(User.email == user.email).first()
 
@@ -33,7 +37,6 @@ def signup(*, db: Session = Depends(get_db), user: UserSignup):
 
     try:
         db_user = User(
-            id=str(uuid4()),
             name=user.name,
             email=user.email,
             password=hash_password(user.password),
@@ -41,9 +44,8 @@ def signup(*, db: Session = Depends(get_db), user: UserSignup):
 
         db.add(db_user)
         db.commit()
-        db.refresh(db_user)
-        return UserSignupResponse(
-            id=db_user.id,
+
+        return UserAuthResponse(
             name=db_user.name,
             email=db_user.email,
             access_token=create_access_token(db_user.id),
@@ -52,26 +54,14 @@ def signup(*, db: Session = Depends(get_db), user: UserSignup):
         print(e)
 
 
-class UserLogin(BaseModel):
-    email: str
-    password: str
-
-
-class UserLoginResponse(BaseModel):
-    id: str
-    name: str
-    email: str
-    access_token: str
-
-
-@router.post("/login/", response_model=UserLoginResponse)
+@router.post("/login/", response_model=UserAuthResponse)
 def login(*, db: Session = Depends(get_db), user: UserLogin):
     db_user = db.query(User).filter(User.email == user.email).first()
 
     if not db_user or not verify_password(user.password, db_user.password):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
-    return UserLoginResponse(
-        id=db_user.id,
+
+    return UserAuthResponse(
         name=db_user.name,
         email=db_user.email,
         access_token=create_access_token(db_user.id),

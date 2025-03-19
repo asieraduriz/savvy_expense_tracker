@@ -32,7 +32,7 @@ def test_login_existing_user(client: TestClient, pre_populated_session: Session)
     data = response.json()
 
     assert response.status_code == 200
-    assert data["id"] is not None
+    assert "id" not in data
     assert data["name"] == "Asier"
     assert data["email"] == "some@email.com"
     assert "password" not in data

@@ -13,12 +13,11 @@ def test_signup_user(client: TestClient):
     data = response.json()
 
     assert response.status_code == 201
-    assert data["id"] is not None
+    assert "id" not in data
     assert data["name"] == "Asier"
     assert data["email"] == "some@email.com"
     assert "access_token" in data
     assert "password" not in data
-    assert decode_access_token(data["access_token"])["sub"] == data["id"]
 
 
 @pytest.fixture
