@@ -5,9 +5,19 @@ from api.models import User
 from api.security import hash_password
 
 
+@pytest.fixture
+def user_fixture(test_db: Session):
+    """Fixture to create a pre-populated user in the test database."""
+    user = User(name="Asier", email="some@email.com", password=hash_password("1234"))
+    test_db.add(user)
+    test_db.commit()
+    return user
+
+
 def test_login_non_existing_user(client: TestClient):
+    """Test login with a non-existing user."""
     response = client.post(
-        "/auth/login/", json={"email": "some@email.com", "password": "1234"}
+        "/auth/login/", json={"email": "nonexistent@email.com", "password": "1234"}
     )
     data = response.json()
 
@@ -15,35 +25,26 @@ def test_login_non_existing_user(client: TestClient):
     assert data["detail"] == "Incorrect email or password"
 
 
-@pytest.fixture
-def pre_populated_session(test_db: Session):
-    existing_user = User(
-        name="Asier", email="some@email.com", password=hash_password("1234")
-    )
-    test_db.add(existing_user)
-    test_db.commit()
-    return test_db
-
-
-def test_login_existing_user(client: TestClient, pre_populated_session: Session):
+def test_login_existing_user_success(client: TestClient, user_fixture: User):
+    """Test successful login with an existing user."""
     response = client.post(
-        "/auth/login/", json={"email": "some@email.com", "password": "1234"}
+        "/auth/login/", json={"email": user_fixture.email, "password": "1234"}
     )
     data = response.json()
 
     assert response.status_code == 200
-    assert "id" not in data
-    assert data["name"] == "Asier"
-    assert data["email"] == "some@email.com"
-    assert "password" not in data
+    assert "id" not in data  # Ensure id is not exposed
+    assert data["name"] == user_fixture.name
+    assert data["email"] == user_fixture.email
+    assert "password" not in data  # Ensure password is not exposed
     assert "access_token" in data
 
 
-def test_login_existing_user_incorrect_password(
-    client: TestClient, pre_populated_session: Session
-):
+def test_login_existing_user_incorrect_password(client: TestClient, user_fixture: User):
+    """Test login with an existing user and incorrect password."""
     response = client.post(
-        "/auth/login/", json={"email": "some@email.com", "password": "1235"}
+        "/auth/login/",
+        json={"email": user_fixture.email, "password": "wrong_password"},
     )
     data = response.json()
 

@@ -1,41 +1,47 @@
 from fastapi.testclient import TestClient
 import pytest
 from sqlalchemy.orm import Session
+
 from api.models import User
-from api.security import decode_access_token, hash_password
+from api.security import hash_password
 
 
-def test_signup_user(client: TestClient):
+def test_signup_user_success(client: TestClient):
+    """Test successful user signup."""
     response = client.post(
         "/auth/signup/",
-        json={"name": "Asier", "email": "some@email.com", "password": "1234"},
+        json={"name": "Asier", "email": "newuser@email.com", "password": "1234"},
     )
     data = response.json()
 
     assert response.status_code == 201
-    assert "id" not in data
+    assert "id" not in data  # Ensure id is not exposed
     assert data["name"] == "Asier"
-    assert data["email"] == "some@email.com"
+    assert data["email"] == "newuser@email.com"
     assert "access_token" in data
     assert "password" not in data
 
 
 @pytest.fixture
-def pre_populated_session(test_db: Session):
-    existing_user = User(
-        id="1", name="Asier", email="some@email.com", password=hash_password("1234")
+def existing_user(test_db: Session):
+    """Fixture to create an existing user in the test database."""
+    user = User(
+        name="Asier", email="existing@email.com", password=hash_password("1234")
     )
-    test_db.add(existing_user)
+    test_db.add(user)
     test_db.commit()
-    return test_db
+    return user
 
 
-def test_signup_user_email_already_exists(
-    client: TestClient, pre_populated_session: Session
-):
+def test_signup_user_email_already_exists(client: TestClient, existing_user: User):
+    """Test signup with an email that already exists."""
     response = client.post(
         "/auth/signup/",
-        json={"name": "Asier", "email": "some@email.com", "password": "1234"},
+        json={
+            "name": "AnotherUser",
+            "email": existing_user.email,
+            "password": "password",
+        },
     )
     data = response.json()
 
