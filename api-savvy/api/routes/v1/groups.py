@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends
 
 from pydantic import BaseModel
-from uuid import uuid4
 
 from sqlalchemy.orm import Session
 
@@ -42,7 +41,6 @@ def create_group(
 ):
     try:
         new_group = Group(
-            id=str(uuid4()),
             name=group.name,
             color=group.color,
             icon=group.icon,
