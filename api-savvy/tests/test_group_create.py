@@ -1,25 +1,23 @@
 from fastapi.testclient import TestClient
 import pytest
+from sqlalchemy import select
 from sqlalchemy.orm import Session
-from api.models import User
+from api.models import GroupRoleEnum, User, user_group_role_table
 from api.security import create_access_token, hash_password
 
 
-@pytest.fixture
-def pre_populated_session(test_db: Session):
+def create_user(test_db: Session):
     new_user = User(
-        id="1", name="Asier", email="some@email.com", password=hash_password("1234")
+        name="Asier", email="some@email.com", password=hash_password("1234")
     )
     test_db.add(new_user)
     test_db.commit()
-    test_db.refresh(new_user)
-    return test_db
+    return new_user
 
 
-def test_user_requests_group_creation(
-    client: TestClient, pre_populated_session: Session
-):
-    headers = {"Authorization": f"JWT {create_access_token('1')}"}
+def test_user_requests_group_creation(client: TestClient, test_db: Session):
+    user = create_user(test_db)
+    headers = {"Authorization": f"JWT {create_access_token(user.id)}"}
 
     response = client.post(
         "/v1/groups/",
@@ -34,4 +32,14 @@ def test_user_requests_group_creation(
     assert data["name"] == "Group 1"
     assert data["color"] == "red"
     assert data["icon"] == "shopping-cart"
-    assert data["owner_id"] == "1"
+    assert data["owner_id"] == user.id
+
+    stmt = select(user_group_role_table).where(
+        user_group_role_table.c.user_id == user.id,
+        user_group_role_table.c.group_id == data["id"],
+    )
+
+    result = test_db.execute(stmt).first()
+
+    assert result is not None
+    assert result[2] == GroupRoleEnum.ADMIN.value
