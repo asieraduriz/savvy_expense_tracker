@@ -47,7 +47,7 @@ def create_group(
             owner=user,
         )
         db.add(new_group)
-        db.flush()
+        db.commit()
 
         db.execute(
             user_group_role_table.insert().values(
@@ -55,7 +55,6 @@ def create_group(
             )
         )
 
-        db.commit()
         return GroupResponse(
             id=new_group.id,
             name=new_group.name,
