@@ -1,4 +1,5 @@
 import datetime
+from uuid import uuid4
 from fastapi import status
 from fastapi.testclient import TestClient
 import pytest
@@ -37,6 +38,7 @@ def seed_admin(test_db: Session):
     )
 
     new_subscription = Subscription(
+        id=str(uuid4()),
         on_every=1,
         frequency=SubscriptionFrequencyEnum.MONTHLY,
         start_date=datetime.date.today(),
@@ -120,6 +122,7 @@ def seed_viewer(test_db: Session):
     )
 
     new_subscription = Subscription(
+        id=str(uuid4()),
         on_every=1,
         frequency=SubscriptionFrequencyEnum.MONTHLY,
         start_date=datetime.date.today(),

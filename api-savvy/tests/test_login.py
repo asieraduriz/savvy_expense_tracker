@@ -1,3 +1,4 @@
+from uuid import uuid4
 from fastapi.testclient import TestClient
 import pytest
 from sqlalchemy.orm import Session
@@ -8,7 +9,12 @@ from api.security import hash_password
 @pytest.fixture
 def user_fixture(test_db: Session):
     """Fixture to create a pre-populated user in the test database."""
-    user = User(name="Asier", email="some@email.com", password=hash_password("1234"))
+    user = User(
+        id=str(uuid4()),
+        name="Asier",
+        email="some@email.com",
+        password=hash_password("1234"),
+    )
     test_db.add(user)
     test_db.commit()
     return user

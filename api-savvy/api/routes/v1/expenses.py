@@ -192,6 +192,7 @@ def create_subscription_charge(
         )
 
     new_charge = SubscriptionCharge(
+        id=str(uuid4()),
         subscription=db_subscription,
         charged_date=charge.date,
         amount=charge.amount,

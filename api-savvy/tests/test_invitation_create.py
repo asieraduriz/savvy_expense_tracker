@@ -1,3 +1,4 @@
+from typing import Tuple
 from fastapi import status
 from fastapi.testclient import TestClient
 import pytest
@@ -36,7 +37,8 @@ def seed_admin_role_group(test_db: Session):
     test_db.refresh(new_first_user)
     test_db.refresh(new_second_user)
     test_db.refresh(new_group)
-    return test_db
+
+    new_first_user, new_second_user, new_group
 
 
 @pytest.fixture
@@ -63,7 +65,8 @@ def seed_viewer_role_group(test_db: Session):
     test_db.refresh(new_first_user)
     test_db.refresh(new_second_user)
     test_db.refresh(new_group)
-    return test_db
+
+    return new_first_user, new_second_user, new_group
 
 
 @pytest.fixture
@@ -90,15 +93,19 @@ def seed_member_role_group(test_db: Session):
     test_db.refresh(new_first_user)
     test_db.refresh(new_second_user)
     test_db.refresh(new_group)
-    return test_db
+
+    return new_first_user, new_second_user, new_group
 
 
-def test_user_cannot_invite_themselves(client: TestClient, seed_admin_role_group):
-    headers = {"Authorization": f"JWT {create_access_token('1')}"}
+def test_user_cannot_invite_themselves(
+    client: TestClient, seed_admin_role_group: Tuple[User, User, Group]
+):
+    first_user, _, _ = seed_admin_role_group
+    headers = {"Authorization": f"JWT {create_access_token(first_user.id)}"}
 
     response = client.post(
         f"/v1/groups/3/invite/",
-        json={"invitee_id": "1"},
+        json={"invitee_email": first_user.email},
         headers=headers,
     )
 
@@ -107,12 +114,15 @@ def test_user_cannot_invite_themselves(client: TestClient, seed_admin_role_group
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
-def test_user_does_not_belong_to_group(client: TestClient, seed_admin_role_group):
-    headers = {"Authorization": f"JWT {create_access_token('1')}"}
+def test_user_does_not_belong_to_group(
+    client: TestClient, seed_admin_role_group: Tuple[User, User, Group]
+):
+    first_user, second_user, _ = seed_admin_role_group
+    headers = {"Authorization": f"JWT {create_access_token(first_user.id)}"}
 
     response = client.post(
         f"/v1/groups/other-group-id/invite/",
-        json={"invitee_id": "2"},
+        json={"invitee_email": second_user.email},
         headers=headers,
     )
 
@@ -123,13 +133,16 @@ def test_user_does_not_belong_to_group(client: TestClient, seed_admin_role_group
 
 
 def test_user_cannot_invite_non_existing_user(
-    client: TestClient, seed_admin_role_group
+    client: TestClient, seed_admin_role_group: Tuple[User, User, Group]
 ):
-    headers = {"Authorization": f"JWT {create_access_token('1')}"}
+    first_user, _, _ = seed_admin_role_group
+    headers = {"Authorization": f"JWT {create_access_token(first_user.id)}"}
 
     response = client.post(
         f"/v1/groups/3/invite/",
-        json={"invitee_id": "non-existing-user-id"},
+        json={
+            "invitee_email": "non-existing-user-email",
+        },
         headers=headers,
     )
 
@@ -140,13 +153,14 @@ def test_user_cannot_invite_non_existing_user(
 
 
 def test_viewer_without_privileges_to_send_invitations(
-    client: TestClient, seed_viewer_role_group
+    client: TestClient, seed_viewer_role_group: Tuple[User, User, Group]
 ):
-    headers = {"Authorization": f"JWT {create_access_token('10')}"}
+    first_user, second_user, group = seed_viewer_role_group
+    headers = {"Authorization": f"JWT {create_access_token(first_user.id)}"}
 
     response = client.post(
-        f"/v1/groups/30/invite/",
-        json={"invitee_id": "20"},
+        f"/v1/groups/{group.id}/invite/",
+        json={"invitee_email": second_user.email},
         headers=headers,
     )
 
@@ -157,13 +171,14 @@ def test_viewer_without_privileges_to_send_invitations(
 
 
 def test_member_without_privileges_to_send_invitations(
-    client: TestClient, seed_member_role_group
+    client: TestClient, seed_member_role_group: Tuple[User, User, Group]
 ):
-    headers = {"Authorization": f"JWT {create_access_token('100')}"}
+    first_user, second_user, group = seed_member_role_group
+    headers = {"Authorization": f"JWT {create_access_token(first_user.id)}"}
 
     response = client.post(
-        f"/v1/groups/300/invite/",
-        json={"invitee_id": "200"},
+        f"/v1/groups/{group.id}/invite/",
+        json={"invitee_email": second_user.email},
         headers=headers,
     )
 
@@ -174,12 +189,18 @@ def test_member_without_privileges_to_send_invitations(
 
 
 @pytest.mark.parametrize("role", list(GroupRoleEnum))
-def test_user_invites_existing_user(client: TestClient, seed_admin_role_group, role):
-    headers = {"Authorization": f"JWT {create_access_token('1')}"}
+def test_user_invites_existing_user(
+    client: TestClient, seed_admin_role_group: Tuple[User, User, Group], role
+):
+    first_user, second_user, group = seed_admin_role_group
+    headers = {"Authorization": f"JWT {create_access_token(first_user.id)}"}
 
     response = client.post(
-        f"/v1/groups/3/invite/",
-        json={"invitee_id": "2", "role": role},
+        f"/v1/groups/{group.id}/invite/",
+        json={
+            "invitee_email": second_user.email,
+            "role": role,
+        },
         headers=headers,
     )
 
@@ -187,6 +208,6 @@ def test_user_invites_existing_user(client: TestClient, seed_admin_role_group, r
 
     assert response.status_code == 201
     assert data["id"] is not None
-    assert data["group_id"] == "3"
+    assert data["group_id"] == group.id
     assert data["role"] == role
     assert data["status"] == GroupInvitationStatusEnum.PENDING

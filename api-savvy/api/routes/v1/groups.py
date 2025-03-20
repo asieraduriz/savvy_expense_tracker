@@ -1,7 +1,10 @@
+from typing import List
+from uuid import uuid4
 from fastapi import APIRouter, Depends
 
 from pydantic import BaseModel
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from api.database import get_db
@@ -41,6 +44,7 @@ def create_group(
 ):
     try:
         new_group = Group(
+            id=str(uuid4()),
             name=group.name,
             color=group.color,
             icon=group.icon,
@@ -68,3 +72,31 @@ def create_group(
     except Exception as e:
         db.rollback()
         print("Exception e", e)
+
+
+@router.get("/groups/", response_model=List[GroupResponse])
+def get_groups(
+    db: Session = Depends(get_db), user: User = Depends(get_authenticated_user)
+):
+    user_group_links = db.query(User).filter(User.id == user.id).first().group_links
+    stmt = (
+        select(user_group_role_table)
+        .where(user_group_role_table.c.user_id == user.id)
+        .join(Group)
+    )
+
+    result = db.execute(stmt).all()
+
+    group_response: List[GroupResponse] = []
+    for group in user_group_links:
+        group_dict = GroupResponse(
+            id=group.id,
+            name=group.name,
+            color=group.color,
+            icon=group.icon,
+            owner_id=group.owner_id,
+            owner_name=group.owner.name,
+        )
+        group_response.append(group_dict)
+
+    return group_response

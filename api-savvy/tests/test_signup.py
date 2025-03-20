@@ -1,3 +1,4 @@
+from uuid import uuid4
 from fastapi.testclient import TestClient
 import pytest
 from sqlalchemy.orm import Session
@@ -26,7 +27,10 @@ def test_signup_user_success(client: TestClient):
 def existing_user(test_db: Session):
     """Fixture to create an existing user in the test database."""
     user = User(
-        name="Asier", email="existing@email.com", password=hash_password("1234")
+        id=str(uuid4()),
+        name="Asier",
+        email="existing@email.com",
+        password=hash_password("1234"),
     )
     test_db.add(user)
     test_db.commit()

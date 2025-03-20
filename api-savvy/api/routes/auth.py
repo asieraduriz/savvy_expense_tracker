@@ -37,6 +37,7 @@ def signup(*, db: Session = Depends(get_db), user: UserSignup):
 
     try:
         db_user = User(
+            id=str(uuid4()),
             name=user.name,
             email=user.email,
             password=hash_password(user.password),

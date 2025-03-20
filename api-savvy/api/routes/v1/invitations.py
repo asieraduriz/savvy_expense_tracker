@@ -1,5 +1,6 @@
 import enum
 from typing import Optional
+from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from pydantic import BaseModel
@@ -22,7 +23,7 @@ router = APIRouter()
 
 
 class InviteCreate(BaseModel):
-    invitee_id: str
+    invitee_email: str
     role: Optional[GroupRoleEnum] = GroupRoleEnum.MEMBER
 
 
@@ -54,7 +55,7 @@ def invite_to_group(
             status_code=status.HTTP_400_BAD_REQUEST, detail="User not in group"
         )
 
-    invitee_user = db.query(User).filter(User.id == invitation.invitee_id).first()
+    invitee_user = db.query(User).filter(User.email == invitation.invitee_email).first()
     if invitee_user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Invitee not found"
@@ -68,9 +69,10 @@ def invite_to_group(
 
     try:
         db_invitation = GroupInvitation(
+            id=str(uuid4()),
             group_id=group_id,
             emitter_id=user.id,
-            invitee_id=invitation.invitee_id,
+            invitee_id=invitee_user.id,
             role=invitation.role,
         )
 

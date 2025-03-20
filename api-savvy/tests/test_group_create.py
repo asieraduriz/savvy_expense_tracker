@@ -1,5 +1,5 @@
+from uuid import uuid4
 from fastapi.testclient import TestClient
-import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from api.models import GroupRoleEnum, User, user_group_role_table
@@ -8,7 +8,10 @@ from api.security import create_access_token, hash_password
 
 def create_user(test_db: Session):
     new_user = User(
-        name="Asier", email="some@email.com", password=hash_password("1234")
+        id=str(uuid4()),
+        name="Asier",
+        email="some@email.com",
+        password=hash_password("1234"),
     )
     test_db.add(new_user)
     test_db.commit()
