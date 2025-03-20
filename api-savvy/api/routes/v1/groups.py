@@ -55,6 +55,8 @@ def create_group(
             )
         )
 
+        db.commit()
+
         return GroupResponse(
             id=new_group.id,
             name=new_group.name,

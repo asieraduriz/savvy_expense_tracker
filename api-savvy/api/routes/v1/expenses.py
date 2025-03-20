@@ -1,5 +1,6 @@
 import datetime
 from typing import Optional
+from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, status
 
 
@@ -86,6 +87,7 @@ def create_expense(
 
     if isinstance(expense, OneTimeExpenseCreate):
         new_expense = OneTimeExpense(
+            id=str(uuid4()),
             name=expense.name,
             amount=expense.amount,
             category=expense.category,
@@ -109,6 +111,7 @@ def create_expense(
 
     if isinstance(expense, SubscriptionExpenseCreate):
         new_subscription = Subscription(
+            id=str(uuid4()),
             name=expense.name,
             amount=expense.amount,
             category=expense.category,
