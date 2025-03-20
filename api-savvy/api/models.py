@@ -60,7 +60,7 @@ class Group(Base):
     color: Mapped[Optional[str]]
     icon: Mapped[Optional[str]]
 
-    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
     owner: Mapped[User] = relationship(back_populates="owned_groups")
 
     user_links: Mapped[List[User]] = relationship(
@@ -84,7 +84,7 @@ class GroupInvitation(Base):
 
     id: Mapped[str] = mapped_column(primary_key=True, default=str(uuid4()))
 
-    group_id: Mapped[str] = mapped_column(ForeignKey("groups.id"))
+    group_id: Mapped[str] = mapped_column(ForeignKey("groups.id"), index=True)
     group: Mapped[Group] = relationship(back_populates="invitations")
 
     emitter_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
@@ -92,7 +92,7 @@ class GroupInvitation(Base):
         foreign_keys=[emitter_id], back_populates="emitted_invitations"
     )
 
-    invitee_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    invitee_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
     invitee: Mapped[User] = relationship(
         foreign_keys=[invitee_id], back_populates="received_invitations"
     )
@@ -120,10 +120,10 @@ class Expense(Base):
     name: Mapped[str] = mapped_column(nullable=False)
     amount: Mapped[float] = mapped_column(nullable=False)
 
-    creator_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    creator_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
     creator: Mapped[User] = relationship(back_populates="created_expenses")
 
-    group_id: Mapped[str] = mapped_column(ForeignKey("groups.id"))
+    group_id: Mapped[str] = mapped_column(ForeignKey("groups.id"), index=True)
     group: Mapped[Group] = relationship(back_populates="expenses")
 
     expense_type: Mapped[str]
@@ -178,10 +178,12 @@ class SubscriptionCharge(Base):
 
     id: Mapped[str] = mapped_column(primary_key=True, default=str(uuid4()))
 
-    subscription_id: Mapped[str] = mapped_column(ForeignKey("subscriptions.id"))
+    subscription_id: Mapped[str] = mapped_column(
+        ForeignKey("subscriptions.id"), index=True
+    )
     subscription: Mapped[Subscription] = relationship(back_populates="charges")
     charged_date: Mapped[datetime.date] = mapped_column(nullable=False)
     amount: Mapped[float] = mapped_column(nullable=False)
 
-    creator_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    creator_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
     creator: Mapped[User] = relationship(back_populates="created_subscription_charges")
