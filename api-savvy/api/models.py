@@ -132,13 +132,6 @@ class Expense(Base):
     }
 
 
-class SubscriptionFrequencyEnum(str, Enum):
-    DAILY = "daily"
-    WEEKLY = "weekly"
-    MONTHLY = "monthly"
-    YEARLY = "yearly"
-
-
 class OneTimeExpense(Expense):
     __tablename__ = "one_time_expenses"
 
@@ -149,6 +142,13 @@ class OneTimeExpense(Expense):
     __mapper_args__ = {
         "polymorphic_identity": "one_time",
     }
+
+
+class SubscriptionFrequencyEnum(str, Enum):
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+    YEARLY = "yearly"
 
 
 class Subscription(Expense):

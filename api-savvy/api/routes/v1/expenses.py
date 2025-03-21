@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from api.database import get_db
+from api.iterable_operations import find_first
 from api.models import (
     ExpenseTypeEnum,
     GroupRoleEnum,
@@ -138,6 +139,92 @@ def create_expense(
             start_date=new_subscription.start_date,
             end_date=new_subscription.end_date,
         )
+
+
+class SubscriptionChargeResponse(BaseModel):
+    id: str
+    amount: float
+    charged_date: datetime.date
+
+
+class SubscriptionWithChargesResponse(SubscriptionExpenseResponse):
+    charges: list[SubscriptionChargeResponse]
+
+
+class GroupExpenseResponse(BaseModel):
+    id: str
+    name: str
+    color: str | None
+    icon: str | None
+    owner_id: str
+    owner_name: str
+    expenses: list[OneTimeExpenseResponse | SubscriptionWithChargesResponse]
+
+
+@router.get(
+    "/groups/{group_id}/expenses/",
+    response_model=GroupExpenseResponse,
+    status_code=status.HTTP_200_OK,
+)
+def get_expenses(
+    group_id: str,
+    user: User = Depends(get_authenticated_user),
+):
+    group_link = find_first(user.group_links, lambda link: link.id == group_id)
+
+    if group_link is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Group not found"
+        )
+
+    expense_report = []
+
+    for expense in group_link.expenses:
+        if expense.expense_type == ExpenseTypeEnum.ONE_TIME.value:
+            expense_report.append(
+                OneTimeExpenseResponse(
+                    id=expense.id,
+                    name=expense.name,
+                    amount=expense.amount,
+                    category=expense.category,
+                    date=expense.date,
+                    expense_type=expense.expense_type,
+                )
+            )
+        elif expense.expense_type == ExpenseTypeEnum.SUBSCRIPTION.value:
+            charges = [
+                SubscriptionChargeResponse(
+                    id=charge.id,
+                    amount=charge.amount,
+                    charged_date=charge.charged_date,
+                )
+                for charge in expense.charges
+            ]
+
+            expense_report.append(
+                SubscriptionWithChargesResponse(
+                    id=expense.id,
+                    name=expense.name,
+                    amount=expense.amount,
+                    category=expense.category,
+                    expense_type=expense.expense_type,
+                    on_every=expense.on_every,
+                    frequency=expense.frequency,
+                    start_date=expense.start_date,
+                    end_date=expense.end_date,
+                    charges=charges,
+                )
+            )
+
+    return GroupExpenseResponse(
+        id=group_link.id,
+        name=group_link.name,
+        color=group_link.color,
+        icon=group_link.icon,
+        owner_id=group_link.owner_id,
+        owner_name=group_link.owner.name,
+        expenses=expense_report,
+    )
 
 
 class SubscriptionChargeCreate(BaseModel):
