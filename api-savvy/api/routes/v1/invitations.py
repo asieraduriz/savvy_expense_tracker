@@ -1,5 +1,5 @@
 import enum
-from typing import Optional
+from typing import List, Optional
 from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -22,7 +22,7 @@ from api.middlewares import get_authenticated_user
 router = APIRouter()
 
 
-class InviteCreate(BaseModel):
+class InvitationCreate(BaseModel):
     invitee_email: str
     role: Optional[GroupRoleEnum] = GroupRoleEnum.MEMBER
 
@@ -30,14 +30,15 @@ class InviteCreate(BaseModel):
 class InvitationResponse(BaseModel):
     id: str
     group_id: str
+    group_name: str
     role: GroupRoleEnum
     status: GroupInvitationStatusEnum
 
 
 @router.post("/groups/{group_id}/invite/", status_code=status.HTTP_201_CREATED)
-def invite_to_group(
+def create_invitation(
     group_id: str,
-    invitation: InviteCreate,
+    invitation: InvitationCreate,
     db: Session = Depends(get_db),
     user: User = Depends(get_authenticated_user),
 ):
@@ -79,12 +80,7 @@ def invite_to_group(
         db.add(db_invitation)
         db.commit()
 
-        return InvitationResponse(
-            id=db_invitation.id,
-            group_id=db_invitation.group_id,
-            role=db_invitation.role,
-            status=db_invitation.status,
-        )
+        return _process_invitation(db_invitation)
     except Exception as e:
         db.rollback()
         print("Exception e", e)
@@ -135,12 +131,7 @@ def rsvp_invitation(
 
     db.commit()
 
-    return InvitationResponse(
-        id=invitation.id,
-        group_id=invitation.group_id,
-        role=invitation.role,
-        status=invitation.status,
-    )
+    return _process_invitation(invitation)
 
 
 @router.delete("/groups/invitations/{invitation_id}")
@@ -171,9 +162,37 @@ def withdraw_invitation(
 
     db.commit()
 
+    return _process_invitation(invitation)
+
+
+def _process_invitations(
+    invitations: List[GroupInvitation],
+) -> List[InvitationResponse]:
+    """Helper function to process a list of invitations."""
+    return [_process_invitation(invitation) for invitation in invitations]
+
+
+def _process_invitation(invitation: GroupInvitation):
+    """Helper function to process a list of invitations."""
     return InvitationResponse(
         id=invitation.id,
         group_id=invitation.group_id,
+        group_name=invitation.group.name,
         role=invitation.role,
         status=invitation.status,
     )
+
+
+@router.get("/groups/invitations/", response_model=list[InvitationResponse])
+def get_invitations(user: User = Depends(get_authenticated_user)):
+    return _process_invitations([*user.emitted_invitations, *user.received_invitations])
+
+
+@router.get("/groups/invitations/received", response_model=list[InvitationResponse])
+def get_received_invitations(user: User = Depends(get_authenticated_user)):
+    return _process_invitations(user.received_invitations)
+
+
+@router.get("/groups/invitations/emitted", response_model=list[InvitationResponse])
+def get_invitations(user: User = Depends(get_authenticated_user)):
+    return _process_invitations(user.emitted_invitations)
