@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from api.database import get_db
+from api.iterable_operations import find_first
 from api.models import (
     GroupInvitation,
     GroupInvitationStatusEnum,
@@ -66,6 +67,26 @@ def create_invitation(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not enough privileges to invite",
+        )
+
+    existing_invitation = find_first(
+        invitee_user.received_invitations,
+        lambda invitation: invitation.group_id == group_id,
+    )
+    if (
+        existing_invitation is not None
+        and existing_invitation.status == GroupInvitationStatusEnum.PENDING
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Invitee already has a pending invitation",
+        )
+
+    if find_first(
+        invitee_user.group_links, lambda group_link: group_link.id == group_id
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Invitee already in group"
         )
 
     try:
