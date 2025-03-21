@@ -41,7 +41,7 @@ def invite_to_group(
     db: Session = Depends(get_db),
     user: User = Depends(get_authenticated_user),
 ):
-    if user.id == invitation.invitee_id:
+    if user.email == invitation.invitee_email:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
     query = select(user_group_role_table).where(

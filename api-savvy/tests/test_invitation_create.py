@@ -38,7 +38,7 @@ def seed_admin_role_group(test_db: Session):
     test_db.refresh(new_second_user)
     test_db.refresh(new_group)
 
-    new_first_user, new_second_user, new_group
+    return new_first_user, new_second_user, new_group
 
 
 @pytest.fixture
