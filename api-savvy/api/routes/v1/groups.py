@@ -103,6 +103,29 @@ def get_groups(
     return group_response
 
 
+@router.get("/groups/{group_id}", response_model=GroupResponse)
+def get_group(
+    group_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_authenticated_user),
+):
+    db_group = find_first(
+        user.group_links, lambda group_link: group_link.id == group_id
+    )
+
+    if db_group is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    return GroupResponse(
+        id=db_group.id,
+        name=db_group.name,
+        color=db_group.color,
+        icon=db_group.icon,
+        owner_id=db_group.owner_id,
+        owner_name=db_group.owner.name,
+    )
+
+
 class GroupPatch(BaseModel):
     name: str
     color: Optional[str] = None
