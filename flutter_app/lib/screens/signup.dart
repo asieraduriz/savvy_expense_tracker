@@ -1,8 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'login.dart';
 
-class SignupPage extends StatelessWidget {
+class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
+
+  @override
+  State<SignupPage> createState() => _SignupPageState();
+}
+
+class _SignupPageState extends State<SignupPage> {
+  final formKey = GlobalKey<FormState>();
+  final nameController = TextEditingController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -13,13 +25,42 @@ class SignupPage extends StatelessWidget {
         child: Form(
           child: Column(
             children: [
-              TextFormField(decoration: InputDecoration(labelText: 'Name')),
-              TextFormField(decoration: InputDecoration(labelText: 'Email')),
-              TextFormField(decoration: InputDecoration(labelText: 'Password')),
+              TextFormField(
+                controller: nameController,
+                decoration: InputDecoration(labelText: 'Name'),
+              ),
+              TextFormField(
+                controller: emailController,
+                decoration: InputDecoration(labelText: 'Email'),
+              ),
+              TextFormField(
+                controller: passwordController,
+                decoration: InputDecoration(labelText: 'Password'),
+              ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  FilledButton(onPressed: () {}, child: const Text('Sign up')),
+                  FilledButton(
+                    onPressed: () async {
+                      String name = nameController.text;
+                      String email = emailController.text;
+                      String password = passwordController.text;
+                      final signup = await http.post(
+                        Uri.parse('http://localhost:8000/auth/signup'),
+                        headers: <String, String>{
+                          'Content-Type': 'application/json; charset=UTF-8',
+                        },
+                        body: jsonEncode(<String, String>{
+                          'name': name,
+                          'email': email,
+                          'password': password,
+                        }),
+                      );
+
+                      print("Singup response ${signup.body}");
+                    },
+                    child: const Text('Sign up'),
+                  ),
                   TextButton(
                     onPressed: () {
                       Navigator.pushReplacement(
