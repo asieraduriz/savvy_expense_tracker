@@ -7,9 +7,29 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = Provider.of<AuthProvider>(context, listen: false).user!;
+    final authProvider = Provider.of<AuthProvider>(context);
+    final user = authProvider.user!;
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              authProvider.logout();
+              // Handle logout
+            },
+          ),
+        ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
+        ],
+      ),
       body: Center(child: Text("Hello, ${user.name}")),
     );
   }

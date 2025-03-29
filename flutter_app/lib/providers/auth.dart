@@ -63,4 +63,11 @@ class AuthProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  void logout() {
+    _status = AuthStatus.unauthenticated;
+    _user = null;
+    _accessToken = null;
+    notifyListeners();
+  }
 }
