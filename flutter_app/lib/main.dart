@@ -1,32 +1,14 @@
 import 'package:flutter/material.dart';
-import 'screens/signup.dart';
+import 'package:provider/provider.dart';
+import 'package:savvy_expense_tracker/gates/auth.dart';
+import 'package:savvy_expense_tracker/providers/auth.dart';
+import 'package:savvy_expense_tracker/services/auth.dart';
 
 void main() {
-  runApp(const MaterialApp(title: 'Savvy', home: Home()));
-}
-
-class Home extends StatelessWidget {
-  const Home({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Savvy Expense Tracker App')),
-      body: Column(
-        children: [
-          ElevatedButton(
-            onPressed:
-                () => {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const SignupPage()),
-                  ),
-                },
-            child: const Text('Sign up'),
-          ),
-          ElevatedButton(onPressed: null, child: const Text('Log in')),
-        ],
-      ),
-    );
-  }
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => AuthProvider(authService: AuthService()),
+      child: const MaterialApp(title: 'Savvy', home: AuthGate()),
+    ),
+  );
 }
