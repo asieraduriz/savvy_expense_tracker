@@ -6,12 +6,16 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from api.security import (
+    REFRESH_TOKEN_SECRET,
+    REFRESH_TOKEN_EXPIRE_DAYS,
+    create_refresh_token,
+    decode_refresh_token,
     hash_password,
     verify_password,
     create_access_token,
     decode_access_token,
     get_user_from_auth,
-    SECRET_KEY,
+    ACCESS_TOKEN_SECRET,
     ALGORITHM,
     ACCESS_TOKEN_EXPIRE_MINUTES,
 )
@@ -35,9 +39,17 @@ def test_verify_password():
 def test_create_access_token():
     user_id = "123"
     token = create_access_token(user_id)
-    decoded_token = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    decoded_token = jwt.decode(token, ACCESS_TOKEN_SECRET, algorithms=[ALGORITHM])
     assert decoded_token["sub"] == user_id
     assert decoded_token["type"] == "access"
+    assert "exp" in decoded_token
+    
+def test_create_refresh_token():
+    user_id = "123"
+    token = create_refresh_token(user_id)
+    decoded_token = jwt.decode(token, REFRESH_TOKEN_SECRET, algorithms=[ALGORITHM])
+    assert decoded_token["sub"] == user_id
+    assert decoded_token["type"] == "refresh"
     assert "exp" in decoded_token
 
 
@@ -48,6 +60,14 @@ def test_decode_access_token():
     assert decoded_token["sub"] == user_id
     assert decoded_token["type"] == "access"
     assert "exp" in decoded_token
+    
+def test_decode_refresh_token():
+    user_id = "123"
+    token = create_refresh_token(user_id)
+    decoded_token = decode_refresh_token(token)
+    assert decoded_token["sub"] == user_id
+    assert decoded_token["type"] == "refresh"
+    assert "exp" in decoded_token
 
 
 def test_decode_access_token_invalid_token():
@@ -57,19 +77,36 @@ def test_decode_access_token_invalid_token():
 
 
 def test_decode_access_token_invalid_type():
+    token_type = 'any_token_type'
     user_id = "123"
     now_utc = datetime.now(timezone.utc)
     expire = now_utc + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     token = jwt.encode(
-        {"exp": expire, "sub": user_id, "type": "invalid"},
-        SECRET_KEY,
+        {"exp": expire, "sub": user_id, "type": token_type},
+        ACCESS_TOKEN_SECRET,
         algorithm=ALGORITHM,
     )
 
     with pytest.raises(HTTPException) as excinfo:
         decode_access_token(token)
     assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
-    assert excinfo.value.detail == "Invalid token type"
+    assert excinfo.value.detail == f"Invalid access token type: {token_type}"
+    
+def test_decode_refresh_token_invalid_type():
+    token_type = 'any_token_type'
+    user_id = "123"
+    now_utc = datetime.now(timezone.utc)
+    expire = now_utc + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    token = jwt.encode(
+        {"exp": expire, "sub": user_id, "type": token_type},
+        REFRESH_TOKEN_SECRET,
+        algorithm=ALGORITHM,
+    )
+
+    with pytest.raises(HTTPException) as excinfo:
+        decode_refresh_token(token)
+    assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert excinfo.value.detail == f"Invalid refresh token type: {token_type}"
 
 
 def test_get_user_from_auth_valid(test_db: Session):
