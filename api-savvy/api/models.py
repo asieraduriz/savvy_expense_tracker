@@ -49,6 +49,21 @@ class User(Base):
     created_subscription_charges: Mapped[List[SubscriptionCharge]] = relationship(
         back_populates="creator"
     )
+    
+    refresh_tokens: Mapped[List[UserRefreshToken]] = relationship(back_populates="user")
+
+
+class UserRefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[str] = mapped_column(primary_key=True, default=str(uuid4()))
+    refresh_token: Mapped[bytes] = mapped_column(nullable=False, index=True)
+    expiry_timestamp: Mapped[datetime.date] = mapped_column(nullable=False)
+    revoked: Mapped[bool] = mapped_column(nullable=False, default=False)
+
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    user = relationship("User", back_populates="refresh_tokens")
+
 
 
 class Group(Base):

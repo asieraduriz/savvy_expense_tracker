@@ -15,14 +15,14 @@ REFRESH_TOKEN_SECRET = "0fab5a909fd8c7d652edd6f7e15635f64bf1d00e354069052641c554
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 
-def hash_password(password: str) -> bytes:
+def hask_token(token: str) -> bytes:
     salt = bcrypt.gensalt()
-    hashed_password = bcrypt.hashpw(password.encode("utf-8"), salt)
-    return hashed_password
+    hashed_token = bcrypt.hashpw(token.encode("utf-8"), salt)
+    return hashed_token
 
 
-def verify_password(password: str, hashed_password: bytes) -> bool:
-    return bcrypt.checkpw(password.encode("utf-8"), hashed_password)
+def verify_hash(token: str, hashed_token: bytes) -> bool:
+    return bcrypt.checkpw(token.encode("utf-8"), hashed_token)
 
 
 def create_access_token(user_id: str) -> str:
@@ -31,11 +31,11 @@ def create_access_token(user_id: str) -> str:
 
     return _create_token(user_id, "access", ACCESS_TOKEN_SECRET, expire)
 
-def create_refresh_token(user_id: str) -> str:
+def create_refresh_token(user_id: str) -> tuple[str, datetime]:
     now_utc = datetime.now(timezone.utc)
     expire = now_utc + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
 
-    return _create_token(user_id, "refresh", REFRESH_TOKEN_SECRET, expire)
+    return _create_token(user_id, "refresh", REFRESH_TOKEN_SECRET, expire), expire
 
 def _create_token(user_id, type: Literal["access", "refresh"], secret: str, expire: datetime) -> str:
     to_encode = {"exp": expire, "sub": user_id, "type": type}

@@ -3,7 +3,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from api.models import Group, GroupRoleEnum, User, user_group_role_table
-from api.security import create_access_token, hash_password
+from api.security import create_access_token, hask_token
 
 
 def create_user(test_db: Session):
@@ -11,7 +11,7 @@ def create_user(test_db: Session):
         id=str(uuid4()),
         name="Asier",
         email=f"{uuid4()}@email.com",
-        password=hash_password("1234"),
+        password=hask_token("1234"),
     )
     test_db.add(new_user)
     test_db.commit()

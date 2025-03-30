@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 import pytest
 from sqlalchemy.orm import Session
 from api.models import User
-from api.security import hash_password
+from api.security import hask_token
 
 
 @pytest.fixture
@@ -13,7 +13,7 @@ def user_fixture(test_db: Session):
         id=str(uuid4()),
         name="Asier",
         email="some@email.com",
-        password=hash_password("1234"),
+        password=hask_token("1234"),
     )
     test_db.add(user)
     test_db.commit()

@@ -10,8 +10,8 @@ from api.security import (
     REFRESH_TOKEN_EXPIRE_DAYS,
     create_refresh_token,
     decode_refresh_token,
-    hash_password,
-    verify_password,
+    hask_token,
+    verify_hash,
     create_access_token,
     decode_access_token,
     get_user_from_auth,
@@ -24,16 +24,16 @@ from api.models import User
 
 def test_hash_password():
     password = "testpassword"
-    hashed_password = hash_password(password)
+    hashed_password = hask_token(password)
     assert isinstance(hashed_password, bytes)
     assert bcrypt.checkpw(password.encode("utf-8"), hashed_password)
 
 
 def test_verify_password():
     password = "testpassword"
-    hashed_password = hash_password(password)
-    assert verify_password(password, hashed_password)
-    assert not verify_password("wrongpassword", hashed_password)
+    hashed_password = hask_token(password)
+    assert verify_hash(password, hashed_password)
+    assert not verify_hash("wrongpassword", hashed_password)
 
 
 def test_create_access_token():
@@ -46,7 +46,7 @@ def test_create_access_token():
     
 def test_create_refresh_token():
     user_id = "123"
-    token = create_refresh_token(user_id)
+    token, _ = create_refresh_token(user_id)
     decoded_token = jwt.decode(token, REFRESH_TOKEN_SECRET, algorithms=[ALGORITHM])
     assert decoded_token["sub"] == user_id
     assert decoded_token["type"] == "refresh"
@@ -63,7 +63,7 @@ def test_decode_access_token():
     
 def test_decode_refresh_token():
     user_id = "123"
-    token = create_refresh_token(user_id)
+    token, _ = create_refresh_token(user_id)
     decoded_token = decode_refresh_token(token)
     assert decoded_token["sub"] == user_id
     assert decoded_token["type"] == "refresh"

@@ -16,7 +16,7 @@ from api.models import (
     User,
     user_group_role_table,
 )
-from api.security import create_access_token, hash_password
+from api.security import create_access_token, hask_token
 
 
 @pytest.fixture
@@ -25,7 +25,7 @@ def seed_admin(test_db: Session):
         id=str(uuid4()),
         name="Asier",
         email="admin@email.com",
-        password=hash_password("1234"),
+        password=hask_token("1234"),
     )
     test_db.add(new_user)
 
@@ -67,7 +67,7 @@ def seed_member(test_db: Session):
         id=str(uuid4()),
         name="Yana",
         email="viewer@email.com",
-        password=hash_password("1234"),
+        password=hask_token("1234"),
     )
     test_db.add(new_user)
 

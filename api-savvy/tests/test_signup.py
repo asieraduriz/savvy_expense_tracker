@@ -3,13 +3,13 @@ from fastapi.testclient import TestClient
 import pytest
 from sqlalchemy.orm import Session
 
-from api.models import User
-from api.security import hash_password
+from api.models import User, UserRefreshToken
+from api.security import hask_token, verify_hash
 
 
-def test_signup_user_success(client: TestClient):
+def test_signup_user_success(client: TestClient, test_db: Session):
     """Test successful user signup."""
-    response = client.post(
+    response = client.post(  
         "/auth/signup/",
         json={"name": "Asier", "email": "newuser@email.com", "password": "1234"},
     )
@@ -20,7 +20,16 @@ def test_signup_user_success(client: TestClient):
     assert data["name"] == "Asier"
     assert data["email"] == "newuser@email.com"
     assert "access_token" in data
+    assert "refresh_token" in data
     assert "password" not in data
+    
+    user = test_db.query(User).filter(
+        User.email == "newuser@email.com"
+    ).first()
+    
+    assert verify_hash(data["refresh_token"], user.refresh_tokens[0].refresh_token)
+    assert user.refresh_tokens[0].revoked is False
+    
 
 
 @pytest.fixture
@@ -30,7 +39,7 @@ def existing_user(test_db: Session):
         id=str(uuid4()),
         name="Asier",
         email="existing@email.com",
-        password=hash_password("1234"),
+        password=hask_token("1234"),
     )
     test_db.add(user)
     test_db.commit()
