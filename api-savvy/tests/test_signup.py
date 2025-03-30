@@ -9,7 +9,7 @@ from api.security import hask_token, verify_hash
 
 def test_signup_user_success(client: TestClient, test_db: Session):
     """Test successful user signup."""
-    response = client.post(  
+    response = client.post(
         "/auth/signup/",
         json={"name": "Asier", "email": "newuser@email.com", "password": "1234"},
     )
@@ -22,14 +22,11 @@ def test_signup_user_success(client: TestClient, test_db: Session):
     assert "access_token" in data
     assert "refresh_token" in data
     assert "password" not in data
-    
-    user = test_db.query(User).filter(
-        User.email == "newuser@email.com"
-    ).first()
-    
+
+    user = test_db.query(User).filter(User.email == "newuser@email.com").first()
+
     assert verify_hash(data["refresh_token"], user.refresh_tokens[0].refresh_token)
     assert user.refresh_tokens[0].revoked is False
-    
 
 
 @pytest.fixture

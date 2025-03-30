@@ -6,7 +6,12 @@ from uuid import uuid4
 
 from api.database import get_db
 from api.models import User, UserRefreshToken
-from api.security import create_access_token, create_refresh_token, hask_token, verify_hash
+from api.security import (
+    create_access_token,
+    create_refresh_token,
+    hask_token,
+    verify_hash,
+)
 
 router = APIRouter()
 
@@ -48,11 +53,11 @@ def signup(user: UserSignup, db: Session = Depends(get_db)):
         refresh_token, refresh_token_expiry = create_refresh_token(db_user.id)
 
         db_refresh_token = UserRefreshToken(
-                id=str(uuid4()),
-                refresh_token=hask_token(refresh_token),
-                expiry_timestamp=refresh_token_expiry,
-                user=db_user
-            )
+            id=str(uuid4()),
+            refresh_token=hask_token(refresh_token),
+            expiry_timestamp=refresh_token_expiry,
+            user=db_user,
+        )
         db.add(db_user)
         db.add(db_refresh_token)
         db.commit()
@@ -61,7 +66,7 @@ def signup(user: UserSignup, db: Session = Depends(get_db)):
             name=db_user.name,
             email=db_user.email,
             access_token=create_access_token(db_user.id),
-            refresh_token=refresh_token
+            refresh_token=refresh_token,
         )
     except Exception as e:
         print(e)

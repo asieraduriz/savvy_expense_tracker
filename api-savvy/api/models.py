@@ -49,7 +49,7 @@ class User(Base):
     created_subscription_charges: Mapped[List[SubscriptionCharge]] = relationship(
         back_populates="creator"
     )
-    
+
     refresh_tokens: Mapped[List[UserRefreshToken]] = relationship(back_populates="user")
 
 
@@ -63,7 +63,6 @@ class UserRefreshToken(Base):
 
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
     user = relationship("User", back_populates="refresh_tokens")
-
 
 
 class Group(Base):

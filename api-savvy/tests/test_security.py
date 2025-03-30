@@ -43,7 +43,8 @@ def test_create_access_token():
     assert decoded_token["sub"] == user_id
     assert decoded_token["type"] == "access"
     assert "exp" in decoded_token
-    
+
+
 def test_create_refresh_token():
     user_id = "123"
     token, _ = create_refresh_token(user_id)
@@ -60,7 +61,8 @@ def test_decode_access_token():
     assert decoded_token["sub"] == user_id
     assert decoded_token["type"] == "access"
     assert "exp" in decoded_token
-    
+
+
 def test_decode_refresh_token():
     user_id = "123"
     token, _ = create_refresh_token(user_id)
@@ -77,7 +79,7 @@ def test_decode_access_token_invalid_token():
 
 
 def test_decode_access_token_invalid_type():
-    token_type = 'any_token_type'
+    token_type = "any_token_type"
     user_id = "123"
     now_utc = datetime.now(timezone.utc)
     expire = now_utc + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -91,9 +93,10 @@ def test_decode_access_token_invalid_type():
         decode_access_token(token)
     assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
     assert excinfo.value.detail == f"Invalid access token type: {token_type}"
-    
+
+
 def test_decode_refresh_token_invalid_type():
-    token_type = 'any_token_type'
+    token_type = "any_token_type"
     user_id = "123"
     now_utc = datetime.now(timezone.utc)
     expire = now_utc + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
