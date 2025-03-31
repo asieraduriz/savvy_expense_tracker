@@ -17,7 +17,7 @@ REFRESH_TOKEN_SECRET = (
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 
-def hask_token(token: str) -> bytes:
+def hash_token(token: str) -> bytes:
     salt = bcrypt.gensalt()
     hashed_token = bcrypt.hashpw(token.encode("utf-8"), salt)
     return hashed_token

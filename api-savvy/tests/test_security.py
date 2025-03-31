@@ -10,7 +10,7 @@ from api.security import (
     REFRESH_TOKEN_EXPIRE_DAYS,
     create_refresh_token,
     decode_refresh_token,
-    hask_token,
+    hash_token,
     verify_hash,
     create_access_token,
     decode_access_token,
@@ -24,14 +24,14 @@ from api.models import User
 
 def test_hash_password():
     password = "testpassword"
-    hashed_password = hask_token(password)
+    hashed_password = hash_token(password)
     assert isinstance(hashed_password, bytes)
     assert bcrypt.checkpw(password.encode("utf-8"), hashed_password)
 
 
 def test_verify_password():
     password = "testpassword"
-    hashed_password = hask_token(password)
+    hashed_password = hash_token(password)
     assert verify_hash(password, hashed_password)
     assert not verify_hash("wrongpassword", hashed_password)
 

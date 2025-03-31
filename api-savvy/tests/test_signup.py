@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from api.models import User, UserRefreshToken
-from api.security import hask_token, verify_hash
+from api.security import hash_token, verify_hash
 
 
 def test_signup_user_success(client: TestClient, test_db: Session):
@@ -36,7 +36,7 @@ def existing_user(test_db: Session):
         id=str(uuid4()),
         name="Asier",
         email="existing@email.com",
-        password=hask_token("1234"),
+        password=hash_token("1234"),
     )
     test_db.add(user)
     test_db.commit()

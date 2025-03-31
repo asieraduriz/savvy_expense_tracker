@@ -9,7 +9,7 @@ from api.models import User, UserRefreshToken
 from api.security import (
     create_access_token,
     create_refresh_token,
-    hask_token,
+    hash_token,
     verify_hash,
 )
 
@@ -47,14 +47,14 @@ def signup(user: UserSignup, db: Session = Depends(get_db)):
             id=str(uuid4()),
             name=user.name,
             email=user.email,
-            password=hask_token(user.password),
+            password=hash_token(user.password),
         )
 
         refresh_token, refresh_token_expiry = create_refresh_token(db_user.id)
 
         db_refresh_token = UserRefreshToken(
             id=str(uuid4()),
-            refresh_token=hask_token(refresh_token),
+            refresh_token=hash_token(refresh_token),
             expiry_timestamp=refresh_token_expiry,
             user=db_user,
         )

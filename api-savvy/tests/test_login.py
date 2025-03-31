@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 import pytest
 from sqlalchemy.orm import Session
 from api.models import User
-from api.security import hask_token
+from api.security import hash_token
 
 
 @pytest.fixture
@@ -13,7 +13,7 @@ def user_fixture(test_db: Session):
         id=str(uuid4()),
         name="Asier",
         email="some@email.com",
-        password=hask_token("1234"),
+        password=hash_token("1234"),
     )
     test_db.add(user)
     test_db.commit()
@@ -44,6 +44,8 @@ def test_login_existing_user_success(client: TestClient, user_fixture: User):
     assert data["email"] == user_fixture.email
     assert "password" not in data  # Ensure password is not exposed
     assert "access_token" in data
+    assert "refresh_token" in data
+    assert data["access_token"] is not None
 
 
 def test_login_existing_user_incorrect_password(client: TestClient, user_fixture: User):
@@ -56,3 +58,23 @@ def test_login_existing_user_incorrect_password(client: TestClient, user_fixture
 
     assert response.status_code == 401
     assert data["detail"] == "Incorrect email or password"
+
+
+"""
+Login tests with refresh token:
+When login in, return a new refresh token
+    Add it to the database
+    
+When loging out and login in again, return a different refresh token
+    When logging out, revoke old refresh token? 
+    
+
+Now on to /refresh_token endpoint
+When refresh token is valid, return a new access token
+    
+When refresh token is invalid, return 401
+    Check if revoked
+    Check if expired
+    Check if not in database
+
+"""

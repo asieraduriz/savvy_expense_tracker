@@ -15,7 +15,7 @@ from api.models import (
     user_group_role_table,
     SubscriptionFrequencyEnum,
 )
-from api.security import create_access_token, hask_token
+from api.security import create_access_token, hash_token
 
 
 @pytest.fixture
@@ -24,7 +24,7 @@ def seed_admin(test_db: Session):
         id="user-admin-id",
         name="Asier",
         email="admin@email.com",
-        password=hask_token("1234"),
+        password=hash_token("1234"),
     )
     test_db.add(new_user)
 
@@ -106,7 +106,7 @@ def seed_viewer(test_db: Session):
         id="user-viewer-id",
         name="Yana",
         email="viewer@email.com",
-        password=hask_token("1234"),
+        password=hash_token("1234"),
     )
     test_db.add(new_user)
 
