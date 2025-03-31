@@ -2,8 +2,8 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 import pytest
 from sqlalchemy.orm import Session
-from api.models import User
-from api.security import hash_token
+from api.models import User, UserRefreshToken
+from api.security import hash_token, verify_hash
 
 
 @pytest.fixture
@@ -31,7 +31,9 @@ def test_login_non_existing_user(client: TestClient):
     assert data["detail"] == "Incorrect email or password"
 
 
-def test_login_existing_user_success(client: TestClient, user_fixture: User):
+def test_login_existing_user_success(
+    client: TestClient, user_fixture: User, test_db: Session
+):
     """Test successful login with an existing user."""
     response = client.post(
         "/auth/login/", json={"email": user_fixture.email, "password": "1234"}
@@ -46,6 +48,10 @@ def test_login_existing_user_success(client: TestClient, user_fixture: User):
     assert "access_token" in data
     assert "refresh_token" in data
     assert data["access_token"] is not None
+
+    token = test_db.query(UserRefreshToken).filter_by(user_id=user_fixture.id).first()
+
+    assert verify_hash(data["refresh_token"], token.refresh_token)
 
 
 def test_login_existing_user_incorrect_password(client: TestClient, user_fixture: User):
