@@ -133,4 +133,28 @@ def refresh_token(body: RefreshTokenRequest, db: Session = Depends(get_db)):
         db_refresh_token.revoked = True
         db.commit()
         raise HTTPException(status_code=401, detail="Token expired")
-    pass
+
+    if db_refresh_token.user is None:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    db_refresh_token.revoked = True
+
+    new_refresh_token, new_refresh_token_expiry = create_refresh_token(
+        db_refresh_token.user_id
+    )
+    db_refresh_token = UserRefreshToken(
+        id=str(uuid4()),
+        refresh_token=hash_token(new_refresh_token),
+        expiry_timestamp=new_refresh_token_expiry,
+        revoked=False,
+        user=db_refresh_token.user,
+    )
+    db.add(db_refresh_token)
+
+    db.commit()
+    return UserAuthResponse(
+        name=db_refresh_token.user.name,
+        email=db_refresh_token.user.email,
+        access_token=create_access_token(db_refresh_token.user_id),
+        refresh_token=new_refresh_token,
+    )

@@ -24,7 +24,7 @@ def test_user(test_db):
 
 @pytest.fixture
 def valid_refresh_token(test_db, test_user):
-    plain_refresh_token = create_refresh_token(test_user.id)
+    plain_refresh_token, _ = create_refresh_token(test_user.id)
     hashed_refresh_token = hash_token(plain_refresh_token)
     refresh_token_obj = UserRefreshToken(
         id="1",
@@ -36,7 +36,6 @@ def valid_refresh_token(test_db, test_user):
     )
 
     test_db.add(refresh_token_obj)
-
     test_db.commit()
     return plain_refresh_token, refresh_token_obj.id
 
@@ -55,7 +54,6 @@ def expired_refresh_token(test_db, test_user):
     )
 
     test_db.add(refresh_token_obj)
-
     test_db.commit()
     return plain_refresh_token
 
@@ -74,7 +72,6 @@ def revoked_refresh_token(test_db: Session, test_user: User):
     )
 
     test_db.add(refresh_token_obj)
-
     test_db.commit()
     return plain_refresh_token
 
@@ -84,7 +81,6 @@ def test_invalid_refresh_token(client: TestClient):
         "/auth/refresh",
         json={"token": "invalidtoken"},
     )
-
     assert response.status_code == 401
 
 
@@ -94,7 +90,6 @@ def test_refresh_token_does_not_exist_in_database(client: TestClient, test_user:
         "/auth/refresh",
         json={"token": refresh_token},
     )
-
     assert response.status_code == 404
 
 
@@ -128,3 +123,94 @@ def test_refresh_token_is_expired(
         test_db.query(UserRefreshToken).filter(UserRefreshToken.id == "2").first()
     )
     assert refresh_token.revoked == True
+
+
+def test_refresh_token_success(
+    client: TestClient,
+    test_db: Session,
+    test_user: User,
+    valid_refresh_token: tuple[str, str],
+):
+    plain_token, old_token_id = valid_refresh_token
+    response = client.post(
+        "/auth/refresh",
+        json={"token": plain_token},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "id" not in data
+    assert "password" not in data
+    assert "access_token" in data
+    assert isinstance(data["access_token"], str)
+    assert "refresh_token" in data
+    assert isinstance(data["refresh_token"], str)
+    assert data["refresh_token"] != plain_token
+
+    db_refresh_token = (
+        test_db.query(UserRefreshToken)
+        .filter(UserRefreshToken.id == old_token_id)
+        .first()
+    )
+    assert db_refresh_token.revoked is True
+
+    active_refresh_tokens = (
+        test_db.query(UserRefreshToken)
+        .filter(UserRefreshToken.user_id == test_user.id)
+        .filter(UserRefreshToken.revoked == False)
+        .count()
+    )
+    assert active_refresh_tokens == 1
+
+
+def test_refresh_token_rotation(
+    client: TestClient,
+    test_db: Session,
+    test_user: User,
+    valid_refresh_token: tuple[str, str],
+):
+    plain_token, _ = valid_refresh_token
+
+    response_success = client.post(
+        "/auth/refresh",
+        json={"token": plain_token},
+    )
+    assert response_success.status_code == 200
+
+    response_fail = client.post(
+        "/auth/refresh",
+        json={"token": plain_token},
+    )
+    assert response_fail.status_code == 401
+    data_fail = response_fail.json()
+    assert "detail" in data_fail
+    assert data_fail["detail"] == "Token revoked"
+
+
+def test_refresh_token_empty_token_value(client: TestClient):
+    response = client.post(
+        "/auth/refresh",
+        json={"token": ""},
+    )
+    assert response.status_code == 401
+    data = response.json()
+    assert "detail" in data
+    assert data["detail"] == "Could not validate credentials"
+
+
+def test_refresh_token_user_does_not_exist(
+    client: TestClient, test_db: Session, valid_refresh_token: tuple[str, str]
+):
+    plain_token, _ = valid_refresh_token
+
+    test_db.query(User).filter(User.id == "1").delete()
+    test_db.commit()
+
+    response = client.post(
+        "/auth/refresh",
+        json={"token": plain_token},
+    )
+    assert response.status_code == 401
+    data = response.json()
+    assert "detail" in data
+    assert data["detail"] == "Invalid refresh token"
