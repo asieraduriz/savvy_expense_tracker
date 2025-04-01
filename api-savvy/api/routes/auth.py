@@ -158,3 +158,27 @@ def refresh_token(body: RefreshTokenRequest, db: Session = Depends(get_db)):
         access_token=create_access_token(db_refresh_token.user_id),
         refresh_token=new_refresh_token,
     )
+
+
+@router.post("/logout/")
+def logout(body: RefreshTokenRequest, db: Session = Depends(get_db)):
+    decoded_token = decode_refresh_token(body.token)
+    decoded_user_id = decoded_token.get("sub")
+
+    db_refresh_tokens = (
+        db.query(UserRefreshToken)
+        .filter(UserRefreshToken.user_id == decoded_user_id)
+        .all()
+    )
+    db_refresh_token = find_first(
+        db_refresh_tokens, lambda x: verify_hash(body.token, x.refresh_token)
+    )
+
+    if db_refresh_token is None or db_refresh_token.revoked:
+        raise HTTPException(
+            status_code=401, detail="Invalid or already revoked refresh token"
+        )
+
+    db_refresh_token.revoked = True
+    db.commit()
+    return {"message": "Logout successful"}

@@ -114,7 +114,7 @@ def test_logout_invalid_refresh_token(client: TestClient):
     assert response.status_code == 401
     data = response.json()
     assert "detail" in data
-    assert data["detail"] == "Invalid or already revoked refresh token"
+    assert data["detail"] == "Could not validate credentials"
 
 
 def test_logout_refresh_token_does_not_exist(client: TestClient, test_user: User):
@@ -184,4 +184,4 @@ def test_logout_empty_token_value(client: TestClient):
     assert response.status_code == 401
     data = response.json()
     assert "detail" in data
-    assert data["detail"] == "Invalid or already revoked refresh token"
+    assert data["detail"] == "Could not validate credentials"
